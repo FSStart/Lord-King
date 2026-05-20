@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus AI · 语音智能助手</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background: #0a0a0f;
+  color: #e5e7eb;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* 极光背景 */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.aurora-bg::before,
+.aurora-bg::after {
+  content: '';
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.3;
+  animation: float 20s ease-in-out infinite;
+}
+
+.aurora-bg::before {
+  background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+  top: -200px;
+  left: -200px;
+}
+
+.aurora-bg::after {
+  background: radial-gradient(circle, #ec4899 0%, transparent 70%);
+  bottom: -200px;
+  right: -200px;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(100px, -50px) scale(1.1); }
+  66% { transform: translate(-50px, 100px) scale(0.9); }
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部栏 */
+header {
+  background: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.brand h1 {
+  font-size: 16px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand p {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #9ca3af;
+  font-size: 18px;
+  margin-left: 8px;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-icon.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+}
+
+/* 主区 */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  gap: 32px;
+  overflow-y: auto;
+}
+
+/* 语音球 */
+.voice-orb {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orb-core {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+  box-shadow: 0 0 60px rgba(139, 92, 246, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  z-index: 3;
+  position: relative;
+  color: white;
+  font-size: 36px;
+}
+
+.orb-core.idle { animation: breathe 3s ease-in-out infinite; }
+.orb-core.wake-listening {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  animation: pulse 2s ease-in-out infinite;
+}
+.orb-core.listening {
+  background: linear-gradient(135deg, #ef4444, #ec4899);
+  animation: pulse-fast 1s ease-in-out infinite;
+}
+.orb-core.thinking {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  animation: rotate-glow 2s linear infinite;
+}
+.orb-core.speaking {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  animation: speak 0.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); box-shadow: 0 0 80px rgba(139, 92, 246, 0.8); }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 60px rgba(14, 165, 233, 0.5); }
+  50% { box-shadow: 0 0 100px rgba(14, 165, 233, 0.9); transform: scale(1.08); }
+}
+
+@keyframes pulse-fast {
+  0%, 100% { box-shadow: 0 0 60px rgba(239, 68, 68, 0.5); transform: scale(1); }
+  50% { box-shadow: 0 0 120px rgba(239, 68, 68, 1); transform: scale(1.1); }
+}
+
+@keyframes rotate-glow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes speak {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* 字幕 */
+.subtitle {
+  min-height: 60px;
+  text-align: center;
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 600px;
+  padding: 0 20px;
+  transition: opacity 0.3s;
+}
+
+.subtitle.user { color: #c4b5fd; }
+.subtitle.ai { color: #6ee7b7; }
+.subtitle.status { color: #94a3b8; font-size: 14px; }
+
+/* 快捷按钮 */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.quick-btn {
+  background: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d1d5db;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.quick-btn:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #fff;
+}
+
+/* 历史消息 */
+.msg-history {
+  width: 100%;
+  max-width: 600px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  max-width: 85%;
+  line-height: 1.5;
+}
+
+.msg-user {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  margin-left: auto;
+}
+
+.msg-ai {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 底部 */
+footer {
+  background: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fbbf24;
+  margin-right: 6px;
+}
+
+.dot.connected { background: #10b981; }
+.dot.disconnected { background: #ef4444; }
+
+/* 设置面板 */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: -380px;
+  width: 360px;
+  height: 100vh;
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  transition: right 0.3s;
+  z-index: 50;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.settings-panel.open { right: 0; }
+
+.settings-panel h2 {
+  font-size: 18px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: #d1d5db;
+  margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.form-group .hint {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.checkbox-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #6366f1;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 18, 26, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.toast.show { opacity: 1; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<div class="container">
+
+  <!-- 顶部 -->
+  <header>
+    <div class="logo-area">
+      <div class="logo">✨</div>
+      <div class="brand">
+        <h1>Nexus AI</h1>
+        <p id="statusText">初始化中...</p>
+      </div>
+    </div>
+    <div style="display:flex;">
+      <button class="btn-icon" id="wakeBtn" onclick="toggleWakeMode()" title="唤醒词模式">👂</button>
+      <button class="btn-icon" onclick="toggleSettings()" title="设置">⚙️</button>
+    </div>
+  </header>
+
+  <!-- 主区 -->
+  <main>
+    <div class="voice-orb">
+      <div class="orb-core idle" id="orbCore" onclick="handleOrbClick()">🎤</div>
+    </div>
+
+    <div class="subtitle status" id="subtitle">
+      点击中间的球开始,或说 "LordKing" 唤醒我 👑
+    </div>
+
+    <div class="quick-actions">
+      <button class="quick-btn" onclick="quickSay('你好,介绍下自己')">👋 打招呼</button>
+      <button class="quick-btn" onclick="quickSay('今天天气怎么样?')">🌤️ 查天气</button>
+      <button class="quick-btn" onclick="quickSay('帮我规划明天的工作')">📋 做规划</button>
+      <button class="quick-btn" onclick="quickSay('Hello, who are you?')">🌐 英文测试</button>
+    </div>
+
+    <div class="msg-history" id="msgHistory"></div>
+  </main>
+
+  <!-- 底部 -->
+  <footer>
+    <div>
+      <span class="dot" id="connDot"></span>
+      <span id="connText">连接中</span>
+      <span style="margin-left:16px;" id="wakeStatus">唤醒词:关闭</span>
+    </div>
+    <div id="userIdShort"></div>
+  </footer>
+
+</div>
+
+<!-- 设置面板 -->
+<div class="settings-panel" id="settingsPanel">
+  <h2>
+    设置
+    <button class="btn-icon" onclick="toggleSettings()">✕</button>
+  </h2>
+
+  <div class="form-group">
+    <label>唤醒词</label>
+    <input id="wakeWord" type="text" value="lordking">
+    <p class="hint">支持: lordking / lord king / 老大 / 国王陛下</p>
+  </div>
+
+  <div class="form-group">
+    <label>识别语言</label>
+    <select id="recogLang">
+      <option value="zh-CN">中文(普通话)</option>
+      <option value="en-US">English (US)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>AI 声音</label>
+    <select id="ttsVoice">
+      <option value="auto">自动选择</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>语速 <span id="speedVal" style="color:#6b7280">1.0x</span></label>
+    <input id="ttsSpeed" type="range" min="0.5" max="2" step="0.1" value="1"
+           oninput="document.getElementById('speedVal').textContent = this.value + 'x'">
+  </div>
+
+  <div class="checkbox-group">
+    <span>自动播报回复</span>
+    <input id="autoSpeak" type="checkbox" checked>
+  </div>
+
+  <div class="checkbox-group">
+    <span>启用工具调用</span>
+    <input id="useTools" type="checkbox" checked>
+  </div>
+
+  <button class="quick-btn" style="width:100%;margin-top:16px;" onclick="testVoice()">🔊 测试语音</button>
+  <button class="quick-btn" style="width:100%;margin-top:8px;color:#fca5a5;" onclick="clearAll()">🗑️ 清空历史</button>
+
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:#6b7280;line-height:1.8;">
+    <p>💡 <strong>使用提示:</strong></p>
+    <p>• 点击球体直接对话</p>
+    <p>• 开启唤醒词后说"LordKing"</p>
+    <p>• 中英文混合自动识别</p>
+    <p>• 需要 HTTPS 或 localhost</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ 配置 ============
+const API = window.location.protocol + '//' + window.location.host;
+const WS_URL = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;
+
+let userId = localStorage.getItem('userId') || 'user_' + Math.random().toString(36).substr(2, 9);
+localStorage.setItem('userId', userId);
+document.getElementById('userIdShort').textContent = userId.slice(0, 12);
+
+// 状态机
+const STATES = {
+  IDLE: 'idle',
+  WAKE_LISTENING: 'wake-listening',
+  LISTENING: 'listening',
+  THINKING: 'thinking',
+  SPEAKING: 'speaking'
+};
+let currentState = STATES.IDLE;
+
+let ws = null;
+let recognition = null;
+let wakeRecognition = null;
+let synth = window.speechSynthesis;
+let voices = [];
+let wakeWordEnabled = false;
+let isProcessing = false;
+let currentUtterance = null;
+let aiResponseBuffer = '';
+
+// 初始化
+loadSettings();
+checkBrowserSupport();
+loadVoices();
+connectWS();
+
+function checkBrowserSupport() {
+  const hasRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  const isSecure = window.location.protocol === 'https:' ||
+                   window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1';
+
+  if (!hasRecognition) {
+    showToast('⚠️ 浏览器不支持语音,请用 Chrome/Edge');
+    return false;
+  }
+  if (!isSecure) {
+    showToast('⚠️ 语音功能需要 HTTPS 或 localhost');
+  }
+  return true;
+}
+
+function loadSettings() {
+  const saved = JSON.parse(localStorage.getItem('settings') || '{}');
+  if (saved.wakeWord) document.getElementById('wakeWord').value = saved.wakeWord;
+  if (saved.recogLang) document.getElementById('recogLang').value = saved.recogLang;
+  if (saved.ttsSpeed) {
+    document.getElementById('ttsSpeed').value = saved.ttsSpeed;
+    document.getElementById('speedVal').textContent = saved.ttsSpeed + 'x';
+  }
+  if (saved.autoSpeak !== undefined) document.getElementById('autoSpeak').checked = saved.autoSpeak;
+}
+
+function saveSettings() {
+  localStorage.setItem('settings', JSON.stringify({
+    wakeWord: document.getElementById('wakeWord').value,
+    recogLang: document.getElementById('recogLang').value,
+    ttsVoice: document.getElementById('ttsVoice').value,
+    ttsSpeed: document.getElementById('ttsSpeed').value,
+    autoSpeak: document.getElementById('autoSpeak').checked
+  }));
+}
+
+['wakeWord', 'recogLang', 'ttsVoice', 'ttsSpeed', 'autoSpeak'].forEach(id => {
+  document.getElementById(id).addEventListener('change', saveSettings);
+});
+
+function loadVoices() {
+  voices = synth.getVoices();
+  const select = document.getElementById('ttsVoice');
+  select.innerHTML = '<option value="auto">自动选择</option>';
+  voices.filter(v => v.lang.startsWith('zh') || v.lang.startsWith('en')).forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = `${v.name} (${v.lang})`;
+    select.appendChild(opt);
+  });
+}
+
+if (synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = loadVoices;
+}
+
+function connectWS() {
+  ws = new WebSocket(`${WS_URL}/ws/${userId}`);
+
+  ws.onopen = () => {
+    document.getElementById('connDot').className = 'dot connected';
+    document.getElementById('connText').textContent = '已连接';
+    setStatus('就绪');
+  };
+
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    handleWSMessage(data);
+  };
+
+  ws.onclose = () => {
+    document.getElementById('connDot').className = 'dot disconnected';
+    document.getElementById('connText').textContent = '断开';
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = (e) => console.error('WebSocket error:', e);
+}
+
+function handleWSMessage(data) {
+  if (data.type === 'status' && data.status === 'thinking') {
+    setState(STATES.THINKING);
+    setSubtitle('正在思考...', 'status');
+  } else if (data.type === 'chunk') {
+    aiResponseBuffer += data.content;
+    setSubtitle(aiResponseBuffer, 'ai');
+  } else if (data.type === 'done') {
+    const fullResponse = data.full_response || aiResponseBuffer;
+    addToHistory('ai', fullResponse);
+    if (document.getElementById('autoSpeak').checked) {
+      speak(fullResponse);
+    } else {
+      setState(STATES.IDLE);
+      isProcessing = false;
+    }
+    aiResponseBuffer = '';
+  } else if (data.type === 'error') {
+    setSubtitle('出错: ' + data.error, 'status');
+    setState(STATES.IDLE);
+    isProcessing = false;
+    aiResponseBuffer = '';
+  }
+}
+
+function setState(state) {
+  currentState = state;
+  const orb = document.getElementById('orbCore');
+  orb.className = 'orb-core ' + state;
+
+  const icons = {
+    [STATES.IDLE]: '🎤',
+    [STATES.WAKE_LISTENING]: '👂',
+    [STATES.LISTENING]: '🔴',
+    [STATES.THINKING]: '🧠',
+    [STATES.SPEAKING]: '🔊'
+  };
+  orb.textContent = icons[state] || '🎤';
+
+  const statusMap = {
+    [STATES.IDLE]: '就绪',
+    [STATES.WAKE_LISTENING]: '监听唤醒词...',
+    [STATES.LISTENING]: '正在听...',
+    [STATES.THINKING]: '思考中...',
+    [STATES.SPEAKING]: '播报中...'
+  };
+  document.getElementById('statusText').textContent = statusMap[state];
+}
+
+function setStatus(text) {
+  document.getElementById('statusText').textContent = text;
+}
+
+function setSubtitle(text, type = 'status') {
+  const sub = document.getElementById('subtitle');
+  sub.textContent = text;
+  sub.className = 'subtitle ' + type;
+}
+
+function handleOrbClick() {
+  if (isProcessing) {
+    if (currentState === STATES.SPEAKING) stopSpeaking();
+    return;
+  }
+  if (currentState === STATES.WAKE_LISTENING) {
+    stopWakeListening();
+    startListening();
+  } else if (currentState === STATES.LISTENING) {
+    stopListening();
+  } else {
+    startListening();
+  }
+}
+
+function toggleWakeMode() {
+  wakeWordEnabled = !wakeWordEnabled;
+  const btn = document.getElementById('wakeBtn');
+  if (wakeWordEnabled) {
+    btn.classList.add('active');
+    document.getElementById('wakeStatus').textContent = '唤醒词:开启';
+    startWakeListening();
+    showToast('✓ 唤醒词已开启,说 "LordKing"');
+  } else {
+    btn.classList.remove('active');
+    document.getElementById('wakeStatus').textContent = '唤醒词:关闭';
+    stopWakeListening();
+    setState(STATES.IDLE);
+  }
+}
+
+function startWakeListening() {
+  if (!checkBrowserSupport()) return;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  wakeRecognition = new SpeechRecognition();
+  wakeRecognition.continuous = true;
+  wakeRecognition.interimResults = true;
+  wakeRecognition.lang = 'zh-CN';
+
+  const wakeWord = document.getElementById('wakeWord').value.toLowerCase().trim();
+  const aliases = [
+    wakeWord, 'lordking', 'lord king', 'lord-king',
+    '老大', '国王', '陛下', '罗德金', '洛德金',
+    'hey lord', 'hi lord'
+  ];
+
+  wakeRecognition.onresult = (event) => {
+    const result = event.results[event.results.length - 1];
+    const transcript = result[0].transcript.toLowerCase().trim();
+    if (aliases.some(a => transcript.includes(a)) && !isProcessing) {
+      stopWakeListening();
+      playBeep();
+      showToast('✨ 已唤醒,请说话');
+      setTimeout(startListening, 300);
+    }
+  };
+
+  wakeRecognition.onerror = (e) => {
+    if (e.error === 'no-speech' || e.error === 'audio-capture') {
+      setTimeout(() => { if (wakeWordEnabled) startWakeListening(); }, 1000);
+    }
+  };
+
+  wakeRecognition.onend = () => {
+    if (wakeWordEnabled && currentState === STATES.WAKE_LISTENING) {
+      setTimeout(() => { if (wakeWordEnabled) startWakeListening(); }, 100);
+    }
+  };
+
+  try {
+    wakeRecognition.start();
+    setState(STATES.WAKE_LISTENING);
+  } catch (e) {
+    console.error('启动唤醒识别失败:', e);
+  }
+}
+
+function stopWakeListening() {
+  if (wakeRecognition) {
+    try { wakeRecognition.stop(); } catch (e) {}
+    wakeRecognition = null;
+  }
+}
+
+function startListening() {
+  if (!checkBrowserSupport() || isProcessing) return;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = document.getElementById('recogLang').value;
+
+  let finalTranscript = '';
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalTranscript += t;
+      else interim += t;
+    }
+    setSubtitle(finalTranscript + interim, 'user');
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') setSubtitle('没听清,请再说一次', 'status');
+    setState(STATES.IDLE);
+    isProcessing = false;
+    if (wakeWordEnabled) setTimeout(startWakeListening, 1000);
+  };
+
+  recognition.onend = () => {
+    if (finalTranscript.trim()) {
+      sendToAI(finalTranscript.trim());
+    } else {
+      setState(STATES.IDLE);
+      if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+    }
+  };
+
+  try {
+    recognition.start();
+    setState(STATES.LISTENING);
+    setSubtitle('请说话...', 'status');
+  } catch (e) {
+    showToast('启动语音识别失败');
+  }
+}
+
+function stopListening() {
+  if (recognition) {
+    try { recognition.stop(); } catch (e) {}
+  }
+}
+
+function sendToAI(text) {
+  if (!text) return;
+  isProcessing = true;
+  addToHistory('user', text);
+  setSubtitle(text, 'user');
+
+  setTimeout(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        message: text,
+        user_id: userId
+      }));
+    } else {
+      setSubtitle('连接已断开,请等待重连...', 'status');
+      isProcessing = false;
+      setState(STATES.IDLE);
+    }
+  }, 300);
+}
+
+function quickSay(text) {
+  if (isProcessing) return;
+  sendToAI(text);
+}
+
+function speak(text) {
+  if (!text || !synth) {
+    setState(STATES.IDLE);
+    isProcessing = false;
+    return;
+  }
+
+  const cleanText = text.replace(/[*_`#]/g, '').replace(/\n+/g, '。');
+  const isEnglish = /^[\x00-\x7F\s]+$/.test(cleanText.replace(/[。,!?]/g, ''));
+
+  currentUtterance = new SpeechSynthesisUtterance(cleanText);
+  currentUtterance.rate = parseFloat(document.getElementById('ttsSpeed').value);
+
+  const selected = document.getElementById('ttsVoice').value;
+  if (selected !== 'auto') {
+    const v = voices.find(x => x.name === selected);
+    if (v) currentUtterance.voice = v;
+  } else {
+    const lang = isEnglish ? 'en' : 'zh';
+    const v = voices.find(x => x.lang.startsWith(lang));
+    if (v) currentUtterance.voice = v;
+  }
+
+  currentUtterance.onstart = () => setState(STATES.SPEAKING);
+  currentUtterance.onend = () => {
+    setState(STATES.IDLE);
+    isProcessing = false;
+    currentUtterance = null;
+    if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+  };
+  currentUtterance.onerror = () => {
+    setState(STATES.IDLE);
+    isProcessing = false;
+    if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+  };
+
+  synth.speak(currentUtterance);
+}
+
+function stopSpeaking() {
+  if (synth) synth.cancel();
+  setState(STATES.IDLE);
+  isProcessing = false;
+  if (wakeWordEnabled) setTimeout(startWakeListening, 300);
+}
+
+function testVoice() {
+  speak('你好,我是 Nexus AI,你的私人语音助手。Hello, this is a voice test.');
+}
+
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.2);
+  } catch (e) {}
+}
+
+function addToHistory(type, content) {
+  const history = document.getElementById('msgHistory');
+  const wrapper = document.createElement('div');
+  wrapper.style.display = 'flex';
+  wrapper.style.justifyContent = type === 'user' ? 'flex-end' : 'flex-start';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble ' + (type === 'user' ? 'msg-user' : 'msg-ai');
+  bubble.textContent = content;
+
+  wrapper.appendChild(bubble);
+  history.appendChild(wrapper);
+  history.scrollTop = history.scrollHeight;
+
+  while (history.children.length > 10) {
+    history.removeChild(history.firstChild);
+  }
+}
+
+function toggleSettings() {
+  document.getElementById('settingsPanel').classList.toggle('open');
+}
+
+async function clearAll() {
+  if (!confirm('清空所有对话记录?')) return;
+  try {
+    await fetch(`${API}/history/${userId}`, { method: 'DELETE' });
+    document.getElementById('msgHistory').innerHTML = '';
+    setSubtitle('记录已清空', 'status');
+    showToast('✓ 已清空');
+  } catch (e) {
+    showToast('清空失败');
+  }
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// 空格键说话
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !e.repeat &&
+      document.activeElement.tagName !== 'INPUT' &&
+      document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    if (!isProcessing && currentState !== STATES.LISTENING) startListening();
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  if (e.code === 'Space' && currentState === STATES.LISTENING) stopListening();
+});
+
+window.addEventListener('beforeunload', () => {
+  if (currentUtterance) synth.cancel();
+  if (recognition) recognition.stop();
+  if (wakeRecognition) wakeRecognition.stop();
+});
+</script>
+
+</body>
+</html>
