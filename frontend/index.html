@@ -401,7 +401,85 @@ footer {
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
+
+/* ============ Live2D 角色 ============ */
+.live2d-widget {
+  position: fixed;
+  right: 0;
+  bottom: 40px;
+  width: 320px;
+  height: 440px;
+  z-index: 10;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+}
+
+.live2d-widget canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: transparent;
+}
+
+.live2d-widget .l2d-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #94a3b8;
+  background: rgba(18, 18, 26, 0.4);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.live2d-widget .l2d-state-ring {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #c4b5fd;
+  background: rgba(18, 18, 26, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 999px;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.live2d-widget .l2d-state-ring.show { opacity: 1; }
+
+@media (max-width: 768px) {
+  .live2d-widget { width: 200px; height: 280px; }
+}
+
+/* 原球体只作为 Live2D 加载失败时的后备(默认隐藏) */
+.voice-orb { display: none; }
+.voice-orb.fallback {
+  display: flex;
+  position: fixed;
+  right: 24px;
+  bottom: 56px;
+  width: 100px;
+  height: 100px;
+  z-index: 10;
+}
+.voice-orb.fallback .orb-core { width: 80px; height: 80px; font-size: 24px; }
 </style>
+
+<!-- Live2D 依赖 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.0/pixi.min.js"></script>
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
+
 </head>
 <body>
 
@@ -512,6 +590,13 @@ footer {
   </div>
 </div>
 
+<!-- Live2D 角色 (右下角) -->
+<div class="live2d-widget" id="live2dWidget" onclick="handleOrbClick()">
+  <canvas id="live2dCanvas"></canvas>
+  <div class="l2d-state-ring" id="l2dStateRing">就绪</div>
+  <div class="l2d-fallback" id="l2dFallback">加载角色中...</div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -548,6 +633,7 @@ loadSettings();
 checkBrowserSupport();
 loadVoices();
 connectWS();
+initLive2D().catch(e => console.error('Live2D 初始化失败:', e));
 
 function checkBrowserSupport() {
   const hasRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
@@ -676,6 +762,174 @@ function setState(state) {
     [STATES.SPEAKING]: '播报中...'
   };
   document.getElementById('statusText').textContent = statusMap[state];
+  applyLive2DState(state);
+}
+
+// ============ Live2D 角色 ============
+const LIVE2D_MODEL_URL = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json';
+
+let live2dApp = null;
+let live2dModel = null;
+let mouthAnimId = null;
+let live2dReady = false;
+
+async function initLive2D() {
+  const canvas = document.getElementById('live2dCanvas');
+  const widget = document.getElementById('live2dWidget');
+  const fallback = document.getElementById('l2dFallback');
+
+  if (typeof PIXI === 'undefined' || !PIXI.live2d || typeof Live2DCubismCore === 'undefined') {
+    console.warn('Live2D 依赖未加载,使用后备球体');
+    showOrbFallback('Live2D 库未加载');
+    return;
+  }
+
+  try {
+    live2dApp = new PIXI.Application({
+      view: canvas,
+      autoStart: true,
+      resizeTo: widget,
+      backgroundAlpha: 0,
+      antialias: true,
+    });
+
+    live2dModel = await PIXI.live2d.Live2DModel.from(LIVE2D_MODEL_URL, {
+      autoInteract: false,
+    });
+
+    live2dApp.stage.addChild(live2dModel);
+    layoutLive2D();
+
+    window.addEventListener('resize', layoutLive2D);
+    widget.addEventListener('mousemove', onLive2DMouseMove);
+    widget.addEventListener('mouseleave', resetLive2DGaze);
+
+    fallback.style.display = 'none';
+    live2dReady = true;
+    console.log('✓ Live2D 角色已加载');
+
+    // 应用当前状态
+    applyLive2DState(currentState);
+  } catch (e) {
+    console.error('Live2D 模型加载失败:', e);
+    showOrbFallback('角色加载失败,已切换到球体');
+  }
+}
+
+function layoutLive2D() {
+  if (!live2dModel || !live2dApp) return;
+  const w = live2dApp.screen.width;
+  const h = live2dApp.screen.height;
+  const fit = Math.min(w / live2dModel.width, h / live2dModel.height) * 0.95;
+  live2dModel.scale.set(fit);
+  live2dModel.anchor.set(0.5, 0.5);
+  live2dModel.x = w / 2;
+  live2dModel.y = h / 2;
+}
+
+function showOrbFallback(reason) {
+  document.getElementById('live2dWidget').style.display = 'none';
+  const orb = document.querySelector('.voice-orb');
+  if (orb) orb.classList.add('fallback');
+  if (reason) showToast('⚠️ ' + reason);
+}
+
+function setParam(id, value) {
+  if (!live2dModel) return;
+  try {
+    live2dModel.internalModel.coreModel.setParameterValueById(id, value);
+  } catch (e) { /* 参数不存在,模型不同时正常 */ }
+}
+
+function onLive2DMouseMove(e) {
+  if (!live2dReady) return;
+  const widget = document.getElementById('live2dWidget');
+  const rect = widget.getBoundingClientRect();
+  const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+  setParam('ParamAngleX', nx * 30);
+  setParam('ParamAngleY', -ny * 30);
+  setParam('ParamAngleZ', nx * 10);
+  setParam('ParamBodyAngleX', nx * 10);
+  setParam('ParamEyeBallX', nx);
+  setParam('ParamEyeBallY', -ny);
+}
+
+function resetLive2DGaze() {
+  setParam('ParamAngleX', 0);
+  setParam('ParamAngleY', 0);
+  setParam('ParamAngleZ', 0);
+  setParam('ParamBodyAngleX', 0);
+  setParam('ParamEyeBallX', 0);
+  setParam('ParamEyeBallY', 0);
+}
+
+function applyLive2DState(state) {
+  // 状态标签
+  const ring = document.getElementById('l2dStateRing');
+  const labels = {
+    [STATES.IDLE]: '',
+    [STATES.WAKE_LISTENING]: '👂 监听唤醒词',
+    [STATES.LISTENING]: '🔴 正在听',
+    [STATES.THINKING]: '🧠 思考中',
+    [STATES.SPEAKING]: '🔊 播报中'
+  };
+  if (ring) {
+    const text = labels[state] || '';
+    ring.textContent = text;
+    ring.classList.toggle('show', !!text);
+  }
+
+  if (!live2dReady) return;
+  stopMouthAnimation();
+
+  try {
+    switch (state) {
+      case STATES.IDLE:
+        live2dModel.motion('Idle');
+        break;
+      case STATES.WAKE_LISTENING:
+      case STATES.LISTENING:
+        live2dModel.motion('TapBody');
+        setParam('ParamEyeLOpen', 1.2);
+        setParam('ParamEyeROpen', 1.2);
+        break;
+      case STATES.THINKING:
+        live2dModel.motion('TapBody');
+        break;
+      case STATES.SPEAKING:
+        startMouthAnimation();
+        break;
+    }
+  } catch (e) {
+    console.warn('Live2D 动作切换失败:', e);
+  }
+}
+
+function startMouthAnimation() {
+  if (!live2dReady) return;
+  let phase = 0;
+  const tick = () => {
+    if (currentState !== STATES.SPEAKING || !live2dReady) {
+      setParam('ParamMouthOpenY', 0);
+      mouthAnimId = null;
+      return;
+    }
+    phase += 0.4;
+    const v = Math.sin(phase) * 0.45 + Math.sin(phase * 2.3) * 0.25 + 0.4;
+    setParam('ParamMouthOpenY', Math.max(0, Math.min(1, v)));
+    setParam('ParamMouthForm', 0.5);
+    mouthAnimId = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+function stopMouthAnimation() {
+  if (mouthAnimId) {
+    cancelAnimationFrame(mouthAnimId);
+    mouthAnimId = null;
+  }
+  setParam('ParamMouthOpenY', 0);
 }
 
 function setStatus(text) {
