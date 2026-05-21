@@ -475,10 +475,22 @@ footer {
 .voice-orb.fallback .orb-core { width: 80px; height: 80px; font-size: 24px; }
 </style>
 
-<!-- Live2D 依赖 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.0/pixi.min.js"></script>
-<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
+<!-- Live2D 依赖 (本地化,不依赖任何 CDN) -->
+<script src="lib/pixi.min.js"></script>
+<script src="lib/live2dcubismcore.min.js"></script>
+<script src="lib/cubism4.min.js"></script>
+<script>
+  // 立即打印诊断,确认 CDN 都加载成功
+  window.addEventListener('DOMContentLoaded', () => {
+    console.log('[Live2D 诊断]',
+      'PIXI=', typeof PIXI,
+      'PIXI.Application=', typeof PIXI !== 'undefined' ? typeof PIXI.Application : 'N/A',
+      'PIXI.utils=', typeof PIXI !== 'undefined' ? typeof PIXI.utils : 'N/A',
+      'PIXI.live2d=', typeof PIXI !== 'undefined' ? typeof PIXI.live2d : 'N/A',
+      'Live2DCubismCore=', typeof Live2DCubismCore
+    );
+  });
+</script>
 
 </head>
 <body>
@@ -633,7 +645,7 @@ loadSettings();
 checkBrowserSupport();
 loadVoices();
 connectWS();
-initLive2D().catch(e => console.error('Live2D 初始化失败:', e));
+// initLive2D() 在脚本末尾调用,等所有 let 声明先就位
 
 function checkBrowserSupport() {
   const hasRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
@@ -766,7 +778,7 @@ function setState(state) {
 }
 
 // ============ Live2D 角色 ============
-const LIVE2D_MODEL_URL = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json';
+const LIVE2D_MODEL_URL = 'models/haru/haru_greeter_t03.model3.json';
 
 let live2dApp = null;
 let live2dModel = null;
@@ -780,9 +792,15 @@ async function initLive2D() {
 
   if (typeof PIXI === 'undefined' || !PIXI.live2d || typeof Live2DCubismCore === 'undefined') {
     console.warn('Live2D 依赖未加载,使用后备球体');
+    console.log('诊断: PIXI=', typeof PIXI,
+                'PIXI.live2d=', typeof PIXI !== 'undefined' ? typeof PIXI.live2d : 'N/A',
+                'Live2DCubismCore=', typeof Live2DCubismCore);
     showOrbFallback('Live2D 库未加载');
     return;
   }
+
+  // 让 Live2D 模型能自动动画
+  try { PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker); } catch (e) {}
 
   try {
     live2dApp = new PIXI.Application({
@@ -890,12 +908,12 @@ function applyLive2DState(state) {
         break;
       case STATES.WAKE_LISTENING:
       case STATES.LISTENING:
-        live2dModel.motion('TapBody');
+        live2dModel.motion('Tap');
         setParam('ParamEyeLOpen', 1.2);
         setParam('ParamEyeROpen', 1.2);
         break;
       case STATES.THINKING:
-        live2dModel.motion('TapBody');
+        live2dModel.motion('Tap');
         break;
       case STATES.SPEAKING:
         startMouthAnimation();
@@ -1230,6 +1248,9 @@ window.addEventListener('beforeunload', () => {
   if (recognition) recognition.stop();
   if (wakeRecognition) wakeRecognition.stop();
 });
+
+// 所有声明就位后再启动 Live2D (避开 let 的 TDZ)
+initLive2D().catch(e => console.error('Live2D 初始化失败:', e));
 </script>
 
 </body>
