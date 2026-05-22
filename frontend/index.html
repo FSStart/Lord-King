@@ -843,8 +843,10 @@ input[type="checkbox"] {
 <div class="toast" id="toast"></div>
 
 <!-- Live2D SDK + PixiJS -->
-<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+<!-- Live2D SDK + PixiJS - 注意加载顺序 -->
 <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
 
@@ -897,14 +899,36 @@ createSakura();
 
 // ============ Live2D 初始化(多个备选源) ============
 const LIVE2D_MODELS = [
+  // Hiyori - 官方模型,JK 风蓝发女孩
+  'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model@master/Live2D/Hiyori%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B/Hiyori.model3.json',
+  // Haru - 备用 1
   'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@master/test/assets/haru/haru_greeter_t03.model3.json',
+  // Senko - 备用 2(狐狸娘)
   'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model@master/Live2D/Senko_Normals/senko.model3.json',
-  'https://cubism.live2d.com/sample-data/bin/Hiyori/Hiyori.model3.json',
 ];
 
 let currentModelIdx = 0;
 
+// 确保 Cubism Core 加载完成
+function waitForCubism() {
+  return new Promise((resolve) => {
+    if (window.Live2DCubismCore) {
+      resolve();
+      return;
+    }
+    const check = setInterval(() => {
+      if (window.Live2DCubismCore) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 100);
+    // 最多等 10 秒
+    setTimeout(() => { clearInterval(check); resolve(); }, 10000);
+  });
+}
+
 async function initLive2D() {
+  // 显示加载提示
   document.getElementById('live2dPlaceholder').innerHTML = `
     <div class="emoji">🌸</div>
     <div>正在加载角色...</div>
@@ -912,6 +936,20 @@ async function initLive2D() {
   `;
   document.getElementById('live2dPlaceholder').style.display = 'flex';
 
+  // 等待 Cubism Core 加载
+  await waitForCubism();
+
+  if (!window.Live2DCubismCore) {
+    document.getElementById('live2dPlaceholder').innerHTML = `
+      <div class="emoji">😢</div>
+      <div>Cubism Core 加载失败</div>
+      <div style="font-size:11px;margin-top:6px;color:#c9a8b1">CDN 网络问题</div>
+      <button class="quick-btn" style="margin-top:12px;font-size:12px;" onclick="location.reload()">🔄 刷新页面</button>
+    `;
+    return;
+  }
+
+  // 清理旧资源
   if (pixiApp) {
     try { pixiApp.destroy(true, true); } catch(e) {}
     pixiApp = null;
@@ -920,11 +958,26 @@ async function initLive2D() {
 
   for (let i = currentModelIdx; i < LIVE2D_MODELS.length; i++) {
     const modelUrl = LIVE2D_MODELS[i];
-    console.log(`尝试加载模型 ${i + 1}: ${modelUrl}`);
+    console.log(`尝试加载模型 ${i + 1}/${LIVE2D_MODELS.length}: ${modelUrl}`);
+
+    // 每次重新获取 canvas
+    let canvas = document.getElementById('live2dCanvas');
+    if (!canvas) {
+      console.error('canvas 元素丢失,重建中...');
+      const area = document.getElementById('live2dArea');
+      canvas = document.createElement('canvas');
+      canvas.id = 'live2dCanvas';
+      area.insertBefore(canvas, area.firstChild);
+    }
 
     try {
-      const canvas = document.getElementById('live2dCanvas');
+      // 重新获取 rect(每次创建新 canvas 后必须重新获取)
       const rect = canvas.getBoundingClientRect();
+
+      if (rect.width === 0 || rect.height === 0) {
+        console.warn('canvas 尺寸为 0,跳过');
+        continue;
+      }
 
       pixiApp = new PIXI.Application({
         view: canvas,
@@ -939,11 +992,14 @@ async function initLive2D() {
 
       const Live2DModel = PIXI.live2d.Live2DModel;
       const modelPromise = Live2DModel.from(modelUrl, { autoInteract: true });
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000));
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('加载超时')), 20000)
+      );
 
       live2dModel = await Promise.race([modelPromise, timeoutPromise]);
 
       pixiApp.stage.addChild(live2dModel);
+
       const scale = Math.min(rect.width / live2dModel.width, rect.height / live2dModel.height) * 0.9;
       live2dModel.scale.set(scale);
       live2dModel.x = rect.width / 2 - live2dModel.width / 2;
@@ -956,7 +1012,7 @@ async function initLive2D() {
         showCharacterText(greetings[Math.floor(Math.random() * greetings.length)]);
       });
 
-      console.log('✓ Live2D 加载成功:', modelUrl);
+      console.log('✓ Live2D 加载成功!');
       showCharacterText('你好呀,我来啦~ ✨');
       currentModelIdx = i;
       return;
@@ -964,17 +1020,18 @@ async function initLive2D() {
     } catch (e) {
       console.warn(`模型 ${i + 1} 加载失败:`, e.message);
       if (pixiApp) {
-        try { pixiApp.destroy(true, true); } catch(err) {}
+        try { pixiApp.destroy(true, false); } catch(err) {}
         pixiApp = null;
       }
+      live2dModel = null;
     }
   }
 
   // 所有模型都失败
   document.getElementById('live2dPlaceholder').innerHTML = `
     <div class="emoji">🌸</div>
-    <div>Live2D 加载失败</div>
-    <div style="font-size:11px;margin-top:6px;color:#c9a8b1">CDN 网络问题</div>
+    <div>Live2D 模型加载失败</div>
+    <div style="font-size:11px;margin-top:6px;color:#c9a8b1">所有 CDN 都无法访问</div>
     <button class="quick-btn" style="margin-top:12px;font-size:12px;" onclick="currentModelIdx=0; initLive2D()">🔄 重新加载</button>
   `;
 }
