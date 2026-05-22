@@ -3,78 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nexus AI · 语音智能助手</title>
+<title>Nexus AI · 二次元智能助手</title>
 <style>
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 body {
-  background: #0a0a0f;
-  color: #e5e7eb;
+  background: #fdf4f0;
+  color: #4a3f4d;
   overflow: hidden;
   height: 100vh;
 }
 
-/* 极光背景 */
-.aurora-bg {
+/* ============ 桃花背景 ============ */
+.bg-container {
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  background: linear-gradient(135deg, #fde2e7 0%, #fed7c4 35%, #ffd5a8 70%, #ffbb8a 100%);
 }
 
-.aurora-bg::before,
-.aurora-bg::after {
+.bg-container::before,
+.bg-container::after {
   content: '';
   position: absolute;
-  width: 800px;
-  height: 800px;
+  width: 700px;
+  height: 700px;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.3;
-  animation: float 20s ease-in-out infinite;
+  opacity: 0.6;
+  animation: float 18s ease-in-out infinite;
 }
 
-.aurora-bg::before {
-  background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+.bg-container::before {
+  background: radial-gradient(circle, #fbbac1 0%, transparent 70%);
   top: -200px;
   left: -200px;
 }
 
-.aurora-bg::after {
-  background: radial-gradient(circle, #ec4899 0%, transparent 70%);
+.bg-container::after {
+  background: radial-gradient(circle, #fcb78a 0%, transparent 70%);
   bottom: -200px;
   right: -200px;
-  animation-delay: -10s;
+  animation-delay: -9s;
 }
 
 @keyframes float {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(100px, -50px) scale(1.1); }
-  66% { transform: translate(-50px, 100px) scale(0.9); }
+  33% { transform: translate(80px, -40px) scale(1.1); }
+  66% { transform: translate(-40px, 80px) scale(0.9); }
 }
 
+/* 飘动樱花 */
+.sakura {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: radial-gradient(circle at 30% 30%, #ffb3c1, #ff8fa3);
+  border-radius: 50% 0 50% 50%;
+  opacity: 0.7;
+  animation: sakuraFall linear infinite;
+  pointer-events: none;
+}
+
+@keyframes sakuraFall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 0;
+  }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.6; }
+  100% {
+    transform: translateY(calc(100vh + 100px)) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ============ 主容器 ============ */
 .container {
   position: relative;
   z-index: 1;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
 }
 
-/* 顶部栏 */
+/* ============ 顶部栏 ============ */
 header {
-  background: rgba(18, 18, 26, 0.6);
+  background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 14px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 2px 12px rgba(251, 113, 133, 0.08);
 }
 
 .logo-area {
@@ -86,25 +114,27 @@ header {
 .logo {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #6366f1, #ec4899);
+  background: linear-gradient(135deg, #ec4899, #f97316);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
 }
 
 .brand h1 {
   font-size: 16px;
-  background: linear-gradient(135deg, #6366f1, #ec4899);
+  background: linear-gradient(135deg, #ec4899, #f97316);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  font-weight: 700;
 }
 
 .brand p {
   font-size: 11px;
-  color: #6b7280;
+  color: #9f7a85;
   margin-top: 2px;
 }
 
@@ -112,191 +142,374 @@ header {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s;
-  color: #9ca3af;
+  color: #9f7a85;
   font-size: 18px;
   margin-left: 8px;
 }
 
 .btn-icon:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: #ec4899;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
 }
 
 .btn-icon.active {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.5);
-  color: #a5b4fc;
+  background: linear-gradient(135deg, #fce7f3, #ffedd5);
+  border-color: rgba(236, 72, 153, 0.4);
+  color: #ec4899;
 }
 
-/* 主区 */
+/* ============ 主区域(三栏布局) ============ */
 main {
-  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 700px 1fr;
+  padding: 24px;
+  gap: 24px;
+  overflow: hidden;
+}
+
+/* 中间聊天面板 */
+.chat-panel {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  gap: 32px;
-  overflow-y: auto;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(251, 113, 133, 0.12);
 }
 
-/* 语音球 */
-.voice-orb {
-  position: relative;
-  width: 220px;
-  height: 220px;
+.chat-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 }
 
-.orb-core {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
-  box-shadow: 0 0 60px rgba(139, 92, 246, 0.6);
+.chat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b4f5c;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  z-index: 3;
-  position: relative;
-  color: white;
-  font-size: 36px;
-}
-
-.orb-core.idle { animation: breathe 3s ease-in-out infinite; }
-.orb-core.wake-listening {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
-  animation: pulse 2s ease-in-out infinite;
-}
-.orb-core.listening {
-  background: linear-gradient(135deg, #ef4444, #ec4899);
-  animation: pulse-fast 1s ease-in-out infinite;
-}
-.orb-core.thinking {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
-  animation: rotate-glow 2s linear infinite;
-}
-.orb-core.speaking {
-  background: linear-gradient(135deg, #10b981, #06b6d4);
-  animation: speak 0.6s ease-in-out infinite;
-}
-
-@keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); box-shadow: 0 0 80px rgba(139, 92, 246, 0.8); }
-}
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 60px rgba(14, 165, 233, 0.5); }
-  50% { box-shadow: 0 0 100px rgba(14, 165, 233, 0.9); transform: scale(1.08); }
-}
-
-@keyframes pulse-fast {
-  0%, 100% { box-shadow: 0 0 60px rgba(239, 68, 68, 0.5); transform: scale(1); }
-  50% { box-shadow: 0 0 120px rgba(239, 68, 68, 1); transform: scale(1.1); }
-}
-
-@keyframes rotate-glow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes speak {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
-
-/* 字幕 */
-.subtitle {
-  min-height: 60px;
-  text-align: center;
-  font-size: 18px;
-  line-height: 1.6;
-  max-width: 600px;
-  padding: 0 20px;
-  transition: opacity 0.3s;
-}
-
-.subtitle.user { color: #c4b5fd; }
-.subtitle.ai { color: #6ee7b7; }
-.subtitle.status { color: #94a3b8; font-size: 14px; }
-
-/* 快捷按钮 */
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
-  width: 100%;
-  max-width: 600px;
+}
+
+.chat-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.chat-status {
+  font-size: 12px;
+  color: #9f7a85;
+}
+
+/* 聊天消息区(可滚动,隐藏滚动条) */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: none;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 0;
+}
+
+.chat-messages:hover {
+  scrollbar-width: thin;
+}
+
+.chat-messages:hover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages:hover::-webkit-scrollbar-thumb {
+  background: rgba(236, 72, 153, 0.3);
+  border-radius: 3px;
+}
+
+/* 消息气泡 */
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 85%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+  margin-left: auto;
+  flex-direction: row-reverse;
+}
+
+.message.ai .bubble {
+  background: rgba(96, 165, 250, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  color: #1e40af;
+  font-size: 13px;
+}
+
+.message.user .bubble {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(249, 115, 22, 0.25));
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  color: #831843;
+  font-size: 14px;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.message.ai .bubble {
+  border-top-left-radius: 4px;
+}
+
+.message.user .bubble {
+  border-top-right-radius: 4px;
+}
+
+/* 输入区 */
+.chat-input-area {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: #4a3f4d;
+  padding: 10px 16px;
+  border-radius: 22px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.chat-input:focus {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(236, 72, 153, 0.4);
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+}
+
+.chat-input::placeholder {
+  color: #c9a8b1;
+}
+
+.send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.send-btn:hover {
+  transform: scale(1.1);
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============ 快捷按钮区 ============ */
+.quick-bar {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 14px 24px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .quick-btn {
-  background: rgba(18, 18, 26, 0.6);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #d1d5db;
-  padding: 12px;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: #6b4f5c;
+  padding: 8px 16px;
+  border-radius: 18px;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.3s;
+  font-weight: 500;
 }
 
 .quick-btn:hover {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: #fff;
+  background: linear-gradient(135deg, rgba(252, 165, 165, 0.5), rgba(253, 186, 116, 0.5));
+  color: #831843;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.15);
 }
 
-/* 历史消息 */
-.msg-history {
+/* ============ Live2D 角色区域 ============ */
+.live2d-area {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 320px;
+  height: 480px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#live2dCanvas {
   width: 100%;
-  max-width: 600px;
-  max-height: 200px;
-  overflow-y: auto;
+  height: 100%;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
-.msg-bubble {
-  padding: 10px 14px;
-  border-radius: 12px;
-  margin-bottom: 6px;
+/* 角色对话气泡 */
+.character-bubble {
+  position: fixed;
+  bottom: 380px;
+  right: 280px;
+  max-width: 220px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  color: #6b4f5c;
+  padding: 12px 16px;
+  border-radius: 18px 18px 4px 18px;
   font-size: 13px;
-  max-width: 85%;
   line-height: 1.5;
+  z-index: 11;
+  box-shadow: 0 8px 24px rgba(251, 113, 133, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s;
+  pointer-events: none;
 }
 
-.msg-user {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  margin-left: auto;
+.character-bubble.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.msg-ai {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.character-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 16px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid rgba(255, 255, 255, 0.95);
 }
 
-/* 底部 */
+.character-name {
+  font-size: 11px;
+  color: #ec4899;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* 状态控制按钮 */
+.action-buttons {
+  position: fixed;
+  bottom: 20px;
+  right: 24px;
+  display: flex;
+  gap: 8px;
+  z-index: 20;
+}
+
+.action-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(251, 113, 133, 0.25);
+}
+
+.action-btn.mic {
+  background: linear-gradient(135deg, #ef4444, #ec4899);
+  color: white;
+}
+
+.action-btn.mic.recording {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.action-btn.wake {
+  background: rgba(255, 255, 255, 0.8);
+  color: #6b4f5c;
+}
+
+.action-btn.wake.active {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); box-shadow: 0 4px 24px rgba(239, 68, 68, 0.6); }
+}
+
+/* ============ 底部状态栏 ============ */
 footer {
-  background: rgba(18, 18, 26, 0.6);
+  background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 10px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 8px 24px;
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 11px;
+  color: #9f7a85;
 }
 
 .dot {
@@ -311,26 +524,28 @@ footer {
 .dot.connected { background: #10b981; }
 .dot.disconnected { background: #ef4444; }
 
-/* 设置面板 */
+/* ============ 设置面板 ============ */
 .settings-panel {
   position: fixed;
   top: 0;
   right: -380px;
   width: 360px;
   height: 100vh;
-  background: rgba(10, 10, 15, 0.95);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(20px);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.6);
   transition: right 0.3s;
   z-index: 50;
   overflow-y: auto;
   padding: 24px;
+  box-shadow: -8px 0 32px rgba(251, 113, 133, 0.15);
 }
 
 .settings-panel.open { right: 0; }
 
 .settings-panel h2 {
   font-size: 18px;
+  color: #6b4f5c;
   margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
@@ -344,24 +559,31 @@ footer {
 .form-group label {
   display: block;
   font-size: 13px;
-  color: #d1d5db;
+  color: #6b4f5c;
   margin-bottom: 8px;
+  font-weight: 500;
 }
 
-.form-group input,
+.form-group input[type="text"],
 .form-group select {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  color: #4a3f4d;
+  padding: 10px 12px;
+  border-radius: 10px;
   font-size: 14px;
+  outline: none;
+}
+
+.form-group input[type="text"]:focus,
+.form-group select:focus {
+  border-color: rgba(236, 72, 153, 0.5);
 }
 
 .form-group .hint {
   font-size: 11px;
-  color: #6b7280;
+  color: #b89aa3;
   margin-top: 4px;
 }
 
@@ -369,14 +591,20 @@ footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 10px 0;
   font-size: 14px;
+  color: #6b4f5c;
 }
 
-.checkbox-group input[type="checkbox"] {
+input[type="range"] {
+  width: 100%;
+  accent-color: #ec4899;
+}
+
+input[type="checkbox"] {
   width: 20px;
   height: 20px;
-  accent-color: #6366f1;
+  accent-color: #ec4899;
 }
 
 /* Toast */
@@ -385,9 +613,10 @@ footer {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(18, 18, 26, 0.95);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  color: #831843;
   padding: 12px 24px;
   border-radius: 12px;
   font-size: 14px;
@@ -395,146 +624,108 @@ footer {
   opacity: 0;
   transition: opacity 0.3s;
   pointer-events: none;
+  box-shadow: 0 8px 24px rgba(251, 113, 133, 0.2);
 }
 
 .toast.show { opacity: 1; }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
-
-/* ============ Live2D 角色 ============ */
-.live2d-widget {
-  position: fixed;
-  right: 0;
-  bottom: 40px;
-  width: 320px;
-  height: 440px;
-  z-index: 10;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  pointer-events: auto;
-}
-
-.live2d-widget canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: transparent;
-}
-
-.live2d-widget .l2d-fallback {
+/* 加载占位(Live2D 未加载时显示) */
+.live2d-placeholder {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  color: #94a3b8;
-  background: rgba(18, 18, 26, 0.4);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  flex-direction: column;
+  color: #9f7a85;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
 }
 
-.live2d-widget .l2d-state-ring {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  padding: 4px 12px;
-  font-size: 11px;
-  color: #c4b5fd;
-  background: rgba(18, 18, 26, 0.7);
-  backdrop-filter: blur(10px);
-  border-radius: 999px;
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-  white-space: nowrap;
+.live2d-placeholder .emoji {
+  font-size: 80px;
+  margin-bottom: 12px;
+  animation: bounce 2s ease-in-out infinite;
 }
 
-.live2d-widget .l2d-state-ring.show { opacity: 1; }
-
-@media (max-width: 768px) {
-  .live2d-widget { width: 200px; height: 280px; }
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-/* 原球体只作为 Live2D 加载失败时的后备(默认隐藏) */
-.voice-orb { display: none; }
-.voice-orb.fallback {
-  display: flex;
-  position: fixed;
-  right: 24px;
-  bottom: 56px;
-  width: 100px;
-  height: 100px;
-  z-index: 10;
+/* 响应式 */
+@media (max-width: 1100px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+  .live2d-area {
+    width: 240px;
+    height: 360px;
+  }
+  .character-bubble {
+    right: 220px;
+    bottom: 300px;
+  }
 }
-.voice-orb.fallback .orb-core { width: 80px; height: 80px; font-size: 24px; }
 </style>
-
-<!-- Live2D 依赖 (本地化,不依赖任何 CDN) -->
-<script src="lib/pixi.min.js"></script>
-<script src="lib/live2dcubismcore.min.js"></script>
-<script src="lib/cubism4.min.js"></script>
-<script>
-  // 立即打印诊断,确认 CDN 都加载成功
-  window.addEventListener('DOMContentLoaded', () => {
-    console.log('[Live2D 诊断]',
-      'PIXI=', typeof PIXI,
-      'PIXI.Application=', typeof PIXI !== 'undefined' ? typeof PIXI.Application : 'N/A',
-      'PIXI.utils=', typeof PIXI !== 'undefined' ? typeof PIXI.utils : 'N/A',
-      'PIXI.live2d=', typeof PIXI !== 'undefined' ? typeof PIXI.live2d : 'N/A',
-      'Live2DCubismCore=', typeof Live2DCubismCore
-    );
-  });
-</script>
-
 </head>
 <body>
 
-<div class="aurora-bg"></div>
+<div class="bg-container" id="bgContainer"></div>
 
 <div class="container">
 
   <!-- 顶部 -->
   <header>
     <div class="logo-area">
-      <div class="logo">✨</div>
+      <div class="logo">🌸</div>
       <div class="brand">
         <h1>Nexus AI</h1>
         <p id="statusText">初始化中...</p>
       </div>
     </div>
     <div style="display:flex;">
-      <button class="btn-icon" id="wakeBtn" onclick="toggleWakeMode()" title="唤醒词模式">👂</button>
       <button class="btn-icon" onclick="toggleSettings()" title="设置">⚙️</button>
     </div>
   </header>
 
   <!-- 主区 -->
   <main>
-    <div class="voice-orb">
-      <div class="orb-core idle" id="orbCore" onclick="handleOrbClick()">🎤</div>
+    <div></div>
+
+    <div class="chat-panel">
+      <div class="chat-header">
+        <div class="chat-title">对话记录</div>
+        <div class="chat-status" id="chatStatus">就绪</div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="message ai">
+          <div class="bubble">你好呀!我是 Nexus,你的二次元助手 ✨ 你可以打字也可以语音和我聊天哦~</div>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chatInput"
+               placeholder="说点什么..." onkeydown="handleInputKey(event)">
+        <button class="send-btn" id="sendBtn" onclick="sendText()">→</button>
+      </div>
     </div>
 
-    <div class="subtitle status" id="subtitle">
-      点击中间的球开始,或说 "LordKing" 唤醒我 👑
-    </div>
-
-    <div class="quick-actions">
-      <button class="quick-btn" onclick="quickSay('你好,介绍下自己')">👋 打招呼</button>
-      <button class="quick-btn" onclick="quickSay('今天天气怎么样?')">🌤️ 查天气</button>
-      <button class="quick-btn" onclick="quickSay('帮我规划明天的工作')">📋 做规划</button>
-      <button class="quick-btn" onclick="quickSay('Hello, who are you?')">🌐 英文测试</button>
-    </div>
-
-    <div class="msg-history" id="msgHistory"></div>
+    <div></div>
   </main>
 
-  <!-- 底部 -->
+  <!-- 底部快捷按钮 -->
+  <div class="quick-bar">
+    <button class="quick-btn" onclick="quickSay('你好,介绍下自己')">👋 打招呼</button>
+    <button class="quick-btn" onclick="quickSay('今天天气怎么样?')">🌤️ 查天气</button>
+    <button class="quick-btn" onclick="quickSay('帮我规划明天的工作')">📋 做规划</button>
+    <button class="quick-btn" onclick="quickSay('讲一个笑话')">😂 讲笑话</button>
+    <button class="quick-btn" onclick="quickSay('Hello, who are you?')">🌐 英文测试</button>
+  </div>
+
+  <!-- 底部状态 -->
   <footer>
     <div>
       <span class="dot" id="connDot"></span>
@@ -544,6 +735,28 @@ footer {
     <div id="userIdShort"></div>
   </footer>
 
+</div>
+
+<!-- Live2D 角色 -->
+<div class="live2d-area" id="live2dArea">
+  <canvas id="live2dCanvas"></canvas>
+  <div class="live2d-placeholder" id="live2dPlaceholder">
+    <div class="emoji">👩‍🎓</div>
+    <div>正在加载 Hiyori...</div>
+    <div style="font-size:11px;margin-top:6px;color:#c9a8b1">(首次加载需要几秒)</div>
+  </div>
+</div>
+
+<!-- 角色对话气泡 -->
+<div class="character-bubble" id="characterBubble">
+  <div class="character-name">Hiyori</div>
+  <div id="characterText">点击我或说 "LordKing" 唤醒</div>
+</div>
+
+<!-- 操作按钮 -->
+<div class="action-buttons">
+  <button class="action-btn wake" id="wakeBtn" onclick="toggleWakeMode()" title="唤醒词模式">🌙</button>
+  <button class="action-btn mic" id="micBtn" onclick="handleMicClick()" title="语音输入">🎤</button>
 </div>
 
 <!-- 设置面板 -->
@@ -568,14 +781,26 @@ footer {
   </div>
 
   <div class="form-group">
-    <label>AI 声音</label>
-    <select id="ttsVoice">
-      <option value="auto">自动选择</option>
+    <label>语音引擎</label>
+    <select id="ttsEngine">
+      <option value="edge">Edge TTS · 自然女声(推荐)</option>
+      <option value="browser">浏览器自带</option>
     </select>
   </div>
 
   <div class="form-group">
-    <label>语速 <span id="speedVal" style="color:#6b7280">1.0x</span></label>
+    <label>Edge TTS 声音</label>
+    <select id="edgeVoice">
+      <option value="zh-CN-XiaoxiaoNeural">晓晓 · 温柔甜美</option>
+      <option value="zh-CN-XiaoyiNeural">晓伊 · 活泼可爱</option>
+      <option value="zh-CN-YunxiNeural">云希 · 阳光男生</option>
+      <option value="zh-CN-XiaomengNeural">晓梦 · 知性优雅</option>
+      <option value="zh-CN-XiaohanNeural">晓涵 · 温暖姐姐</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>语速 <span id="speedVal" style="color:#9f7a85">1.0x</span></label>
     <input id="ttsSpeed" type="range" min="0.5" max="2" step="0.1" value="1"
            oninput="document.getElementById('speedVal').textContent = this.value + 'x'">
   </div>
@@ -585,31 +810,25 @@ footer {
     <input id="autoSpeak" type="checkbox" checked>
   </div>
 
-  <div class="checkbox-group">
-    <span>启用工具调用</span>
-    <input id="useTools" type="checkbox" checked>
-  </div>
-
   <button class="quick-btn" style="width:100%;margin-top:16px;" onclick="testVoice()">🔊 测试语音</button>
-  <button class="quick-btn" style="width:100%;margin-top:8px;color:#fca5a5;" onclick="clearAll()">🗑️ 清空历史</button>
+  <button class="quick-btn" style="width:100%;margin-top:8px;color:#dc2626;" onclick="clearAll()">🗑️ 清空历史</button>
 
-  <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:#6b7280;line-height:1.8;">
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(236,72,153,0.1);font-size:12px;color:#9f7a85;line-height:1.8;">
     <p>💡 <strong>使用提示:</strong></p>
-    <p>• 点击球体直接对话</p>
-    <p>• 开启唤醒词后说"LordKing"</p>
+    <p>• 点击 🎤 直接说话</p>
+    <p>• 点击 🌙 开启唤醒词</p>
+    <p>• 说 "LordKing" 唤醒</p>
     <p>• 中英文混合自动识别</p>
-    <p>• 需要 HTTPS 或 localhost</p>
   </div>
-</div>
-
-<!-- Live2D 角色 (右下角) -->
-<div class="live2d-widget" id="live2dWidget" onclick="handleOrbClick()">
-  <canvas id="live2dCanvas"></canvas>
-  <div class="l2d-state-ring" id="l2dStateRing">就绪</div>
-  <div class="l2d-fallback" id="l2dFallback">加载角色中...</div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Live2D SDK + PixiJS -->
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
 
 <script>
 // ============ 配置 ============
@@ -620,7 +839,7 @@ let userId = localStorage.getItem('userId') || 'user_' + Math.random().toString(
 localStorage.setItem('userId', userId);
 document.getElementById('userIdShort').textContent = userId.slice(0, 12);
 
-// 状态机
+// 状态
 const STATES = {
   IDLE: 'idle',
   WAKE_LISTENING: 'wake-listening',
@@ -639,34 +858,108 @@ let wakeWordEnabled = false;
 let isProcessing = false;
 let currentUtterance = null;
 let aiResponseBuffer = '';
+let live2dModel = null;
+let pixiApp = null;
+let currentAudio = null;
 
-// 初始化
-loadSettings();
-checkBrowserSupport();
-loadVoices();
-connectWS();
-// initLive2D() 在脚本末尾调用,等所有 let 声明先就位
-
-function checkBrowserSupport() {
-  const hasRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-  const isSecure = window.location.protocol === 'https:' ||
-                   window.location.hostname === 'localhost' ||
-                   window.location.hostname === '127.0.0.1';
-
-  if (!hasRecognition) {
-    showToast('⚠️ 浏览器不支持语音,请用 Chrome/Edge');
-    return false;
+// ============ 樱花效果 ============
+function createSakura() {
+  const bg = document.getElementById('bgContainer');
+  for (let i = 0; i < 12; i++) {
+    const s = document.createElement('div');
+    s.className = 'sakura';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.animationDuration = (Math.random() * 8 + 8) + 's';
+    s.style.animationDelay = Math.random() * 8 + 's';
+    s.style.opacity = Math.random() * 0.5 + 0.3;
+    bg.appendChild(s);
   }
-  if (!isSecure) {
-    showToast('⚠️ 语音功能需要 HTTPS 或 localhost');
+}
+createSakura();
+
+// ============ Live2D 初始化 ============
+async function initLive2D() {
+  try {
+    // Hiyori 模型 - 从 GitHub 公开 CDN 加载
+    const modelUrl = 'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model/Live2D/Senko_Normals/senko.model3.json';
+    // 备用模型(如果上面加载失败):
+    // 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json'
+
+    const canvas = document.getElementById('live2dCanvas');
+    const rect = canvas.getBoundingClientRect();
+
+    pixiApp = new PIXI.Application({
+      view: canvas,
+      autoStart: true,
+      transparent: true,
+      backgroundAlpha: 0,
+      resolution: window.devicePixelRatio || 1,
+      antialias: true,
+      width: rect.width,
+      height: rect.height
+    });
+
+    const Live2DModel = PIXI.live2d.Live2DModel;
+    live2dModel = await Live2DModel.from(modelUrl, { autoInteract: true });
+
+    pixiApp.stage.addChild(live2dModel);
+
+    // 调整大小和位置
+    const scale = Math.min(rect.width / live2dModel.width, rect.height / live2dModel.height) * 0.9;
+    live2dModel.scale.set(scale);
+    live2dModel.x = rect.width / 2 - live2dModel.width / 2;
+    live2dModel.y = rect.height - live2dModel.height;
+
+    // 隐藏占位符
+    document.getElementById('live2dPlaceholder').style.display = 'none';
+
+    // 点击交互
+    live2dModel.on('pointerdown', () => {
+      const greetings = ['嗨!','你好呀!','找我有事吗?','在的!','摸我做什么呀~'];
+      showCharacterText(greetings[Math.floor(Math.random() * greetings.length)]);
+    });
+
+    console.log('Live2D 加载成功');
+    showCharacterText('你好呀,我来啦~ ✨');
+
+  } catch (e) {
+    console.error('Live2D 加载失败:', e);
+    document.getElementById('live2dPlaceholder').innerHTML = `
+      <div class="emoji">😢</div>
+      <div>Live2D 加载失败</div>
+      <div style="font-size:11px;margin-top:6px;color:#c9a8b1">网络问题,稍后会自动重试</div>
+    `;
+    // 5 秒后重试
+    setTimeout(initLive2D, 5000);
   }
-  return true;
 }
 
+// Live2D 动作触发
+function triggerMotion(group) {
+  if (!live2dModel) return;
+  try {
+    live2dModel.motion(group);
+  } catch (e) {}
+}
+
+// 显示角色对话气泡
+function showCharacterText(text, duration = 4000) {
+  const bubble = document.getElementById('characterBubble');
+  document.getElementById('characterText').textContent = text;
+  bubble.classList.add('show');
+  clearTimeout(bubble._hideTimer);
+  bubble._hideTimer = setTimeout(() => {
+    bubble.classList.remove('show');
+  }, duration);
+}
+
+// ============ 设置加载 ============
 function loadSettings() {
   const saved = JSON.parse(localStorage.getItem('settings') || '{}');
   if (saved.wakeWord) document.getElementById('wakeWord').value = saved.wakeWord;
   if (saved.recogLang) document.getElementById('recogLang').value = saved.recogLang;
+  if (saved.ttsEngine) document.getElementById('ttsEngine').value = saved.ttsEngine;
+  if (saved.edgeVoice) document.getElementById('edgeVoice').value = saved.edgeVoice;
   if (saved.ttsSpeed) {
     document.getElementById('ttsSpeed').value = saved.ttsSpeed;
     document.getElementById('speedVal').textContent = saved.ttsSpeed + 'x';
@@ -678,32 +971,26 @@ function saveSettings() {
   localStorage.setItem('settings', JSON.stringify({
     wakeWord: document.getElementById('wakeWord').value,
     recogLang: document.getElementById('recogLang').value,
-    ttsVoice: document.getElementById('ttsVoice').value,
+    ttsEngine: document.getElementById('ttsEngine').value,
+    edgeVoice: document.getElementById('edgeVoice').value,
     ttsSpeed: document.getElementById('ttsSpeed').value,
     autoSpeak: document.getElementById('autoSpeak').checked
   }));
 }
 
-['wakeWord', 'recogLang', 'ttsVoice', 'ttsSpeed', 'autoSpeak'].forEach(id => {
+['wakeWord', 'recogLang', 'ttsEngine', 'edgeVoice', 'ttsSpeed', 'autoSpeak'].forEach(id => {
   document.getElementById(id).addEventListener('change', saveSettings);
 });
 
 function loadVoices() {
   voices = synth.getVoices();
-  const select = document.getElementById('ttsVoice');
-  select.innerHTML = '<option value="auto">自动选择</option>';
-  voices.filter(v => v.lang.startsWith('zh') || v.lang.startsWith('en')).forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v.name;
-    opt.textContent = `${v.name} (${v.lang})`;
-    select.appendChild(opt);
-  });
 }
 
 if (synth.onvoiceschanged !== undefined) {
   synth.onvoiceschanged = loadVoices;
 }
 
+// ============ WebSocket ============
 function connectWS() {
   ws = new WebSocket(`${WS_URL}/ws/${userId}`);
 
@@ -730,41 +1017,42 @@ function connectWS() {
 function handleWSMessage(data) {
   if (data.type === 'status' && data.status === 'thinking') {
     setState(STATES.THINKING);
-    setSubtitle('正在思考...', 'status');
+    setStatus('思考中...');
+    triggerMotion('idle');
   } else if (data.type === 'chunk') {
     aiResponseBuffer += data.content;
-    setSubtitle(aiResponseBuffer, 'ai');
+    updateLastAIMessage(aiResponseBuffer);
   } else if (data.type === 'done') {
     const fullResponse = data.full_response || aiResponseBuffer;
-    addToHistory('ai', fullResponse);
+    if (!aiResponseBuffer) {
+      addMessage('ai', fullResponse);
+    }
     if (document.getElementById('autoSpeak').checked) {
       speak(fullResponse);
+      showCharacterText(fullResponse.length > 50 ? fullResponse.slice(0, 50) + '...' : fullResponse);
     } else {
       setState(STATES.IDLE);
       isProcessing = false;
     }
     aiResponseBuffer = '';
   } else if (data.type === 'error') {
-    setSubtitle('出错: ' + data.error, 'status');
+    addMessage('ai', '出错了: ' + (data.error || '未知错误'));
     setState(STATES.IDLE);
     isProcessing = false;
     aiResponseBuffer = '';
   }
 }
 
+// ============ 状态管理 ============
 function setState(state) {
   currentState = state;
-  const orb = document.getElementById('orbCore');
-  orb.className = 'orb-core ' + state;
+  const micBtn = document.getElementById('micBtn');
 
-  const icons = {
-    [STATES.IDLE]: '🎤',
-    [STATES.WAKE_LISTENING]: '👂',
-    [STATES.LISTENING]: '🔴',
-    [STATES.THINKING]: '🧠',
-    [STATES.SPEAKING]: '🔊'
-  };
-  orb.textContent = icons[state] || '🎤';
+  if (state === STATES.LISTENING) {
+    micBtn.classList.add('recording');
+  } else {
+    micBtn.classList.remove('recording');
+  }
 
   const statusMap = {
     [STATES.IDLE]: '就绪',
@@ -773,218 +1061,174 @@ function setState(state) {
     [STATES.THINKING]: '思考中...',
     [STATES.SPEAKING]: '播报中...'
   };
+  document.getElementById('chatStatus').textContent = statusMap[state];
   document.getElementById('statusText').textContent = statusMap[state];
-  applyLive2DState(state);
-}
-
-// ============ Live2D 角色 ============
-const LIVE2D_MODEL_URL = 'models/haru/haru_greeter_t03.model3.json';
-
-let live2dApp = null;
-let live2dModel = null;
-let mouthAnimId = null;
-let live2dReady = false;
-
-async function initLive2D() {
-  const canvas = document.getElementById('live2dCanvas');
-  const widget = document.getElementById('live2dWidget');
-  const fallback = document.getElementById('l2dFallback');
-
-  if (typeof PIXI === 'undefined' || !PIXI.live2d || typeof Live2DCubismCore === 'undefined') {
-    console.warn('Live2D 依赖未加载,使用后备球体');
-    console.log('诊断: PIXI=', typeof PIXI,
-                'PIXI.live2d=', typeof PIXI !== 'undefined' ? typeof PIXI.live2d : 'N/A',
-                'Live2DCubismCore=', typeof Live2DCubismCore);
-    showOrbFallback('Live2D 库未加载');
-    return;
-  }
-
-  // 让 Live2D 模型能自动动画
-  try { PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker); } catch (e) {}
-
-  try {
-    live2dApp = new PIXI.Application({
-      view: canvas,
-      autoStart: true,
-      resizeTo: widget,
-      backgroundAlpha: 0,
-      antialias: true,
-    });
-
-    live2dModel = await PIXI.live2d.Live2DModel.from(LIVE2D_MODEL_URL, {
-      autoInteract: false,
-    });
-
-    live2dApp.stage.addChild(live2dModel);
-    layoutLive2D();
-
-    window.addEventListener('resize', layoutLive2D);
-    widget.addEventListener('mousemove', onLive2DMouseMove);
-    widget.addEventListener('mouseleave', resetLive2DGaze);
-
-    fallback.style.display = 'none';
-    live2dReady = true;
-    console.log('✓ Live2D 角色已加载');
-
-    // 应用当前状态
-    applyLive2DState(currentState);
-  } catch (e) {
-    console.error('Live2D 模型加载失败:', e);
-    showOrbFallback('角色加载失败,已切换到球体');
-  }
-}
-
-function layoutLive2D() {
-  if (!live2dModel || !live2dApp) return;
-  const w = live2dApp.screen.width;
-  const h = live2dApp.screen.height;
-  const fit = Math.min(w / live2dModel.width, h / live2dModel.height) * 0.95;
-  live2dModel.scale.set(fit);
-  live2dModel.anchor.set(0.5, 0.5);
-  live2dModel.x = w / 2;
-  live2dModel.y = h / 2;
-}
-
-function showOrbFallback(reason) {
-  document.getElementById('live2dWidget').style.display = 'none';
-  const orb = document.querySelector('.voice-orb');
-  if (orb) orb.classList.add('fallback');
-  if (reason) showToast('⚠️ ' + reason);
-}
-
-function setParam(id, value) {
-  if (!live2dModel) return;
-  try {
-    live2dModel.internalModel.coreModel.setParameterValueById(id, value);
-  } catch (e) { /* 参数不存在,模型不同时正常 */ }
-}
-
-function onLive2DMouseMove(e) {
-  if (!live2dReady) return;
-  const widget = document.getElementById('live2dWidget');
-  const rect = widget.getBoundingClientRect();
-  const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-  setParam('ParamAngleX', nx * 30);
-  setParam('ParamAngleY', -ny * 30);
-  setParam('ParamAngleZ', nx * 10);
-  setParam('ParamBodyAngleX', nx * 10);
-  setParam('ParamEyeBallX', nx);
-  setParam('ParamEyeBallY', -ny);
-}
-
-function resetLive2DGaze() {
-  setParam('ParamAngleX', 0);
-  setParam('ParamAngleY', 0);
-  setParam('ParamAngleZ', 0);
-  setParam('ParamBodyAngleX', 0);
-  setParam('ParamEyeBallX', 0);
-  setParam('ParamEyeBallY', 0);
-}
-
-function applyLive2DState(state) {
-  // 状态标签
-  const ring = document.getElementById('l2dStateRing');
-  const labels = {
-    [STATES.IDLE]: '',
-    [STATES.WAKE_LISTENING]: '👂 监听唤醒词',
-    [STATES.LISTENING]: '🔴 正在听',
-    [STATES.THINKING]: '🧠 思考中',
-    [STATES.SPEAKING]: '🔊 播报中'
-  };
-  if (ring) {
-    const text = labels[state] || '';
-    ring.textContent = text;
-    ring.classList.toggle('show', !!text);
-  }
-
-  if (!live2dReady) return;
-  stopMouthAnimation();
-
-  try {
-    switch (state) {
-      case STATES.IDLE:
-        live2dModel.motion('Idle');
-        break;
-      case STATES.WAKE_LISTENING:
-      case STATES.LISTENING:
-        live2dModel.motion('Tap');
-        setParam('ParamEyeLOpen', 1.2);
-        setParam('ParamEyeROpen', 1.2);
-        break;
-      case STATES.THINKING:
-        live2dModel.motion('Tap');
-        break;
-      case STATES.SPEAKING:
-        startMouthAnimation();
-        break;
-    }
-  } catch (e) {
-    console.warn('Live2D 动作切换失败:', e);
-  }
-}
-
-function startMouthAnimation() {
-  if (!live2dReady) return;
-  let phase = 0;
-  const tick = () => {
-    if (currentState !== STATES.SPEAKING || !live2dReady) {
-      setParam('ParamMouthOpenY', 0);
-      mouthAnimId = null;
-      return;
-    }
-    phase += 0.4;
-    const v = Math.sin(phase) * 0.45 + Math.sin(phase * 2.3) * 0.25 + 0.4;
-    setParam('ParamMouthOpenY', Math.max(0, Math.min(1, v)));
-    setParam('ParamMouthForm', 0.5);
-    mouthAnimId = requestAnimationFrame(tick);
-  };
-  tick();
-}
-
-function stopMouthAnimation() {
-  if (mouthAnimId) {
-    cancelAnimationFrame(mouthAnimId);
-    mouthAnimId = null;
-  }
-  setParam('ParamMouthOpenY', 0);
 }
 
 function setStatus(text) {
   document.getElementById('statusText').textContent = text;
 }
 
-function setSubtitle(text, type = 'status') {
-  const sub = document.getElementById('subtitle');
-  sub.textContent = text;
-  sub.className = 'subtitle ' + type;
+// ============ 消息管理 ============
+function addMessage(type, content) {
+  const messages = document.getElementById('chatMessages');
+  const msg = document.createElement('div');
+  msg.className = 'message ' + type;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = content;
+
+  msg.appendChild(bubble);
+  messages.appendChild(msg);
+  messages.scrollTop = messages.scrollHeight;
 }
 
-function handleOrbClick() {
-  if (isProcessing) {
-    if (currentState === STATES.SPEAKING) stopSpeaking();
+function updateLastAIMessage(content) {
+  const messages = document.getElementById('chatMessages');
+  let lastAI = messages.querySelector('.message.ai:last-child');
+
+  if (!lastAI || lastAI.dataset.streaming !== 'true') {
+    const msg = document.createElement('div');
+    msg.className = 'message ai';
+    msg.dataset.streaming = 'true';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    msg.appendChild(bubble);
+    messages.appendChild(msg);
+    lastAI = msg;
+  }
+
+  lastAI.querySelector('.bubble').textContent = content;
+  messages.scrollTop = messages.scrollHeight;
+
+  // 流式结束后取消标记
+  clearTimeout(lastAI._endTimer);
+  lastAI._endTimer = setTimeout(() => {
+    delete lastAI.dataset.streaming;
+  }, 500);
+}
+
+// ============ 文字输入 ============
+function handleInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendText();
+  }
+}
+
+function sendText() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || isProcessing) return;
+  input.value = '';
+  sendToAI(text);
+}
+
+function quickSay(text) {
+  if (isProcessing) return;
+  sendToAI(text);
+}
+
+// ============ 麦克风 ============
+function handleMicClick() {
+  if (isProcessing && currentState !== STATES.SPEAKING) return;
+
+  if (currentState === STATES.SPEAKING) {
+    stopSpeaking();
     return;
   }
-  if (currentState === STATES.WAKE_LISTENING) {
-    stopWakeListening();
-    startListening();
-  } else if (currentState === STATES.LISTENING) {
+
+  if (currentState === STATES.LISTENING) {
     stopListening();
   } else {
     startListening();
   }
 }
 
+function checkBrowserSupport() {
+  const hasRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  const isSecure = window.location.protocol === 'https:' ||
+                   window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1';
+
+  if (!hasRecognition) {
+    showToast('⚠️ 浏览器不支持语音,请用 Chrome/Edge');
+    return false;
+  }
+  if (!isSecure) {
+    showToast('⚠️ 语音功能需要 HTTPS 或 localhost');
+    return false;
+  }
+  return true;
+}
+
+function startListening() {
+  if (!checkBrowserSupport() || isProcessing) return;
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = document.getElementById('recogLang').value;
+
+  let finalTranscript = '';
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalTranscript += t;
+      else interim += t;
+    }
+    setStatus('听到: ' + (finalTranscript + interim));
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') showToast('没听清,请再说一次');
+    setState(STATES.IDLE);
+    isProcessing = false;
+    if (wakeWordEnabled) setTimeout(startWakeListening, 1000);
+  };
+
+  recognition.onend = () => {
+    if (finalTranscript.trim()) {
+      sendToAI(finalTranscript.trim());
+    } else {
+      setState(STATES.IDLE);
+      if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+    }
+  };
+
+  try {
+    recognition.start();
+    setState(STATES.LISTENING);
+    setStatus('请说话...');
+    showCharacterText('我在听呢~');
+  } catch (e) {
+    showToast('启动语音识别失败');
+  }
+}
+
+function stopListening() {
+  if (recognition) try { recognition.stop(); } catch (e) {}
+}
+
+// ============ 唤醒词 ============
 function toggleWakeMode() {
   wakeWordEnabled = !wakeWordEnabled;
   const btn = document.getElementById('wakeBtn');
+
   if (wakeWordEnabled) {
     btn.classList.add('active');
+    btn.textContent = '✨';
     document.getElementById('wakeStatus').textContent = '唤醒词:开启';
     startWakeListening();
     showToast('✓ 唤醒词已开启,说 "LordKing"');
+    showCharacterText('在听你呼唤呢~ 说 "LordKing" 唤醒我吧');
   } else {
     btn.classList.remove('active');
+    btn.textContent = '🌙';
     document.getElementById('wakeStatus').textContent = '唤醒词:关闭';
     stopWakeListening();
     setState(STATES.IDLE);
@@ -994,8 +1238,8 @@ function toggleWakeMode() {
 function startWakeListening() {
   if (!checkBrowserSupport()) return;
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  wakeRecognition = new SpeechRecognition();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  wakeRecognition = new SR();
   wakeRecognition.continuous = true;
   wakeRecognition.interimResults = true;
   wakeRecognition.lang = 'zh-CN';
@@ -1014,6 +1258,7 @@ function startWakeListening() {
       stopWakeListening();
       playBeep();
       showToast('✨ 已唤醒,请说话');
+      showCharacterText('诶? 主人叫我吗?');
       setTimeout(startListening, 300);
     }
   };
@@ -1034,74 +1279,19 @@ function startWakeListening() {
     wakeRecognition.start();
     setState(STATES.WAKE_LISTENING);
   } catch (e) {
-    console.error('启动唤醒识别失败:', e);
+    console.error(e);
   }
 }
 
 function stopWakeListening() {
-  if (wakeRecognition) {
-    try { wakeRecognition.stop(); } catch (e) {}
-    wakeRecognition = null;
-  }
+  if (wakeRecognition) try { wakeRecognition.stop(); } catch (e) {}
 }
 
-function startListening() {
-  if (!checkBrowserSupport() || isProcessing) return;
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = document.getElementById('recogLang').value;
-
-  let finalTranscript = '';
-
-  recognition.onresult = (event) => {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const t = event.results[i][0].transcript;
-      if (event.results[i].isFinal) finalTranscript += t;
-      else interim += t;
-    }
-    setSubtitle(finalTranscript + interim, 'user');
-  };
-
-  recognition.onerror = (e) => {
-    if (e.error === 'no-speech') setSubtitle('没听清,请再说一次', 'status');
-    setState(STATES.IDLE);
-    isProcessing = false;
-    if (wakeWordEnabled) setTimeout(startWakeListening, 1000);
-  };
-
-  recognition.onend = () => {
-    if (finalTranscript.trim()) {
-      sendToAI(finalTranscript.trim());
-    } else {
-      setState(STATES.IDLE);
-      if (wakeWordEnabled) setTimeout(startWakeListening, 500);
-    }
-  };
-
-  try {
-    recognition.start();
-    setState(STATES.LISTENING);
-    setSubtitle('请说话...', 'status');
-  } catch (e) {
-    showToast('启动语音识别失败');
-  }
-}
-
-function stopListening() {
-  if (recognition) {
-    try { recognition.stop(); } catch (e) {}
-  }
-}
-
+// ============ 发送到 AI ============
 function sendToAI(text) {
   if (!text) return;
   isProcessing = true;
-  addToHistory('user', text);
-  setSubtitle(text, 'user');
+  addMessage('user', text);
 
   setTimeout(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -1110,48 +1300,95 @@ function sendToAI(text) {
         user_id: userId
       }));
     } else {
-      setSubtitle('连接已断开,请等待重连...', 'status');
+      addMessage('ai', '连接已断开,请稍候...');
       isProcessing = false;
       setState(STATES.IDLE);
     }
   }, 300);
 }
 
-function quickSay(text) {
-  if (isProcessing) return;
-  sendToAI(text);
-}
-
-function speak(text) {
-  if (!text || !synth) {
+// ============ TTS 语音 ============
+async function speak(text) {
+  if (!text) {
     setState(STATES.IDLE);
     isProcessing = false;
     return;
   }
 
-  const cleanText = text.replace(/[*_`#]/g, '').replace(/\n+/g, '。');
-  const isEnglish = /^[\x00-\x7F\s]+$/.test(cleanText.replace(/[。,!?]/g, ''));
+  const cleanText = text
+    .replace(/[*_`#]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\n+/g, '。');
 
-  currentUtterance = new SpeechSynthesisUtterance(cleanText);
+  const engine = document.getElementById('ttsEngine').value;
+
+  if (engine === 'edge') {
+    await speakEdge(cleanText);
+  } else {
+    speakBrowser(cleanText);
+  }
+}
+
+async function speakEdge(text) {
+  try {
+    setState(STATES.SPEAKING);
+
+    const voice = document.getElementById('edgeVoice').value;
+    const speed = parseFloat(document.getElementById('ttsSpeed').value);
+    const rate = ((speed - 1) * 100).toFixed(0) + '%';
+
+    const response = await fetch(`${API}/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice, rate: rate.startsWith('-') ? rate : '+' + rate })
+    });
+
+    if (!response.ok) throw new Error('TTS 服务异常');
+
+    const blob = await response.blob();
+    const audioUrl = URL.createObjectURL(blob);
+
+    currentAudio = new Audio(audioUrl);
+
+    currentAudio.onended = () => {
+      setState(STATES.IDLE);
+      isProcessing = false;
+      currentAudio = null;
+      if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+    };
+
+    currentAudio.onerror = () => {
+      console.error('音频播放失败,降级到浏览器 TTS');
+      speakBrowser(text);
+    };
+
+    await currentAudio.play();
+
+  } catch (e) {
+    console.error('Edge TTS 失败:', e);
+    showToast('Edge TTS 失败,使用浏览器声音');
+    speakBrowser(text);
+  }
+}
+
+function speakBrowser(text) {
+  setState(STATES.SPEAKING);
+  const isEnglish = /^[\x00-\x7F\s]+$/.test(text.replace(/[。,!?]/g, ''));
+
+  currentUtterance = new SpeechSynthesisUtterance(text);
   currentUtterance.rate = parseFloat(document.getElementById('ttsSpeed').value);
 
-  const selected = document.getElementById('ttsVoice').value;
-  if (selected !== 'auto') {
-    const v = voices.find(x => x.name === selected);
-    if (v) currentUtterance.voice = v;
-  } else {
-    const lang = isEnglish ? 'en' : 'zh';
-    const v = voices.find(x => x.lang.startsWith(lang));
-    if (v) currentUtterance.voice = v;
-  }
+  const lang = isEnglish ? 'en' : 'zh';
+  const v = voices.find(x => x.lang.startsWith(lang));
+  if (v) currentUtterance.voice = v;
 
-  currentUtterance.onstart = () => setState(STATES.SPEAKING);
   currentUtterance.onend = () => {
     setState(STATES.IDLE);
     isProcessing = false;
     currentUtterance = null;
     if (wakeWordEnabled) setTimeout(startWakeListening, 500);
   };
+
   currentUtterance.onerror = () => {
     setState(STATES.IDLE);
     isProcessing = false;
@@ -1163,15 +1400,20 @@ function speak(text) {
 
 function stopSpeaking() {
   if (synth) synth.cancel();
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
   setState(STATES.IDLE);
   isProcessing = false;
   if (wakeWordEnabled) setTimeout(startWakeListening, 300);
 }
 
 function testVoice() {
-  speak('你好,我是 Nexus AI,你的私人语音助手。Hello, this is a voice test.');
+  speak('你好,我是 Hiyori,你的二次元语音助手。Hello, this is a voice test.');
 }
 
+// ============ 提示音 ============
 function playBeep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1187,25 +1429,7 @@ function playBeep() {
   } catch (e) {}
 }
 
-function addToHistory(type, content) {
-  const history = document.getElementById('msgHistory');
-  const wrapper = document.createElement('div');
-  wrapper.style.display = 'flex';
-  wrapper.style.justifyContent = type === 'user' ? 'flex-end' : 'flex-start';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble ' + (type === 'user' ? 'msg-user' : 'msg-ai');
-  bubble.textContent = content;
-
-  wrapper.appendChild(bubble);
-  history.appendChild(wrapper);
-  history.scrollTop = history.scrollHeight;
-
-  while (history.children.length > 10) {
-    history.removeChild(history.firstChild);
-  }
-}
-
+// ============ 设置面板 ============
 function toggleSettings() {
   document.getElementById('settingsPanel').classList.toggle('open');
 }
@@ -1214,8 +1438,11 @@ async function clearAll() {
   if (!confirm('清空所有对话记录?')) return;
   try {
     await fetch(`${API}/history/${userId}`, { method: 'DELETE' });
-    document.getElementById('msgHistory').innerHTML = '';
-    setSubtitle('记录已清空', 'status');
+    document.getElementById('chatMessages').innerHTML = `
+      <div class="message ai">
+        <div class="bubble">记录已清空 ✨ 重新开始聊天吧~</div>
+      </div>
+    `;
     showToast('✓ 已清空');
   } catch (e) {
     showToast('清空失败');
@@ -1245,12 +1472,16 @@ document.addEventListener('keyup', (e) => {
 
 window.addEventListener('beforeunload', () => {
   if (currentUtterance) synth.cancel();
+  if (currentAudio) currentAudio.pause();
   if (recognition) recognition.stop();
   if (wakeRecognition) wakeRecognition.stop();
 });
 
-// 所有声明就位后再启动 Live2D (避开 let 的 TDZ)
-initLive2D().catch(e => console.error('Live2D 初始化失败:', e));
+// ============ 初始化 ============
+loadSettings();
+loadVoices();
+connectWS();
+initLive2D();
 </script>
 
 </body>

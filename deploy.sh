@@ -1,0 +1,1 @@
+git add . && git commit -m "$1" && git push && ssh root@110.42.217.122 "cd /root/Lord-King && git pull && docker compose restart nginx"

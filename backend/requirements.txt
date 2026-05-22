@@ -20,3 +20,5 @@ python-dotenv==1.0.0
 loguru==0.7.2
 
 marshmallow==3.20.1
+
+edge-tts==6.1.12
