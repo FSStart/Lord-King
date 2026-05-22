@@ -447,57 +447,72 @@ main {
   margin-bottom: 4px;
 }
 
-/* 状态控制按钮 */
-.action-buttons {
+/* ============ 主操作按钮(单一) ============ */
+.main-action-btn {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   right: 24px;
-  display: flex;
-  gap: 8px;
-  z-index: 20;
-}
-
-.action-btn {
-  width: 48px;
-  height: 48px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 26px;
   transition: all 0.3s;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px rgba(251, 113, 133, 0.25);
-}
-
-.action-btn.mic {
-  background: linear-gradient(135deg, #ef4444, #ec4899);
+  background: linear-gradient(135deg, #ec4899, #f97316);
   color: white;
+  z-index: 20;
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
 }
 
-.action-btn.mic.recording {
+.main-action-btn:hover {
+  transform: scale(1.1) rotate(15deg);
+}
+
+.main-action-btn.recording {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   animation: pulse 1s ease-in-out infinite;
 }
 
-.action-btn.wake {
-  background: rgba(255, 255, 255, 0.8);
-  color: #6b4f5c;
-}
-
-.action-btn.wake.active {
+.main-action-btn.wake-mode {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: white;
 }
 
-.action-btn:hover {
-  transform: scale(1.1);
+.main-action-btn.speaking {
+  background: linear-gradient(135deg, #10b981, #059669);
 }
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); box-shadow: 0 4px 24px rgba(239, 68, 68, 0.6); }
+  50% { transform: scale(1.15); box-shadow: 0 4px 28px rgba(239, 68, 68, 0.6); }
+}
+
+.btn-tooltip {
+  position: fixed;
+  bottom: 92px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  color: #6b4f5c;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  pointer-events: none;
+  z-index: 21;
+  box-shadow: 0 4px 12px rgba(251, 113, 133, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.btn-tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ============ 底部状态栏 ============ */
@@ -725,39 +740,41 @@ input[type="checkbox"] {
     <button class="quick-btn" onclick="quickSay('Hello, who are you?')">🌐 英文测试</button>
   </div>
 
-  <!-- 底部状态 -->
   <footer>
     <div>
       <span class="dot" id="connDot"></span>
       <span id="connText">连接中</span>
-      <span style="margin-left:16px;" id="wakeStatus">唤醒词:关闭</span>
+      <span style="margin-left:16px;" id="wakeStatus">点击🌸说话 · 长按开启唤醒</span>
     </div>
     <div id="userIdShort"></div>
   </footer>
 
 </div>
 
-<!-- Live2D 角色 -->
 <div class="live2d-area" id="live2dArea">
   <canvas id="live2dCanvas"></canvas>
   <div class="live2d-placeholder" id="live2dPlaceholder">
-    <div class="emoji">👩‍🎓</div>
-    <div>正在加载 Hiyori...</div>
-    <div style="font-size:11px;margin-top:6px;color:#c9a8b1">(首次加载需要几秒)</div>
+    <div class="emoji">🌸</div>
+    <div>正在加载角色...</div>
+    <div style="font-size:11px;margin-top:6px;color:#c9a8b1">如果一直加载失败,可点击重试</div>
+    <button class="quick-btn" style="margin-top:12px;font-size:12px;" onclick="currentModelIdx=0; initLive2D()">🔄 重新加载</button>
   </div>
 </div>
 
 <!-- 角色对话气泡 -->
 <div class="character-bubble" id="characterBubble">
   <div class="character-name">Hiyori</div>
-  <div id="characterText">点击我或说 "LordKing" 唤醒</div>
+  <div id="characterText">点击下方花花开始对话</div>
 </div>
 
-<!-- 操作按钮 -->
-<div class="action-buttons">
-  <button class="action-btn wake" id="wakeBtn" onclick="toggleWakeMode()" title="唤醒词模式">🌙</button>
-  <button class="action-btn mic" id="micBtn" onclick="handleMicClick()" title="语音输入">🎤</button>
-</div>
+<!-- 单一主操作按钮 -->
+<button class="main-action-btn" id="mainActionBtn"
+        onclick="handleMainAction()"
+        oncontextmenu="event.preventDefault(); toggleWakeMode(); return false;">
+  🌸
+</button>
+
+<div class="btn-tooltip" id="btnTooltip"></div>
 
 <!-- 设置面板 -->
 <div class="settings-panel" id="settingsPanel">
@@ -814,11 +831,12 @@ input[type="checkbox"] {
   <button class="quick-btn" style="width:100%;margin-top:8px;color:#dc2626;" onclick="clearAll()">🗑️ 清空历史</button>
 
   <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(236,72,153,0.1);font-size:12px;color:#9f7a85;line-height:1.8;">
-    <p>💡 <strong>使用提示:</strong></p>
-    <p>• 点击 🎤 直接说话</p>
-    <p>• 点击 🌙 开启唤醒词</p>
-    <p>• 说 "LordKing" 唤醒</p>
-    <p>• 中英文混合自动识别</p>
+    <p>💡 <strong>按钮说明:</strong></p>
+    <p>• 单击 🌸 → 直接说话</p>
+    <p>• 右键 🌸 → 切换唤醒词模式</p>
+    <p>• 长按 🌸 → 切换唤醒词(800ms)</p>
+    <p>• 唤醒词模式下说 "LordKing"</p>
+    <p>• 空格键也可以快速说话</p>
   </div>
 </div>
 
@@ -877,61 +895,88 @@ function createSakura() {
 }
 createSakura();
 
-// ============ Live2D 初始化 ============
+// ============ Live2D 初始化(多个备选源) ============
+const LIVE2D_MODELS = [
+  'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@master/test/assets/haru/haru_greeter_t03.model3.json',
+  'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model@master/Live2D/Senko_Normals/senko.model3.json',
+  'https://cubism.live2d.com/sample-data/bin/Hiyori/Hiyori.model3.json',
+];
+
+let currentModelIdx = 0;
+
 async function initLive2D() {
-  try {
-    // Hiyori 模型 - 从 GitHub 公开 CDN 加载
-    const modelUrl = 'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model/Live2D/Senko_Normals/senko.model3.json';
-    // 备用模型(如果上面加载失败):
-    // 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json'
+  document.getElementById('live2dPlaceholder').innerHTML = `
+    <div class="emoji">🌸</div>
+    <div>正在加载角色...</div>
+    <div style="font-size:11px;margin-top:6px;color:#c9a8b1">连接中,请稍候</div>
+  `;
+  document.getElementById('live2dPlaceholder').style.display = 'flex';
 
-    const canvas = document.getElementById('live2dCanvas');
-    const rect = canvas.getBoundingClientRect();
-
-    pixiApp = new PIXI.Application({
-      view: canvas,
-      autoStart: true,
-      transparent: true,
-      backgroundAlpha: 0,
-      resolution: window.devicePixelRatio || 1,
-      antialias: true,
-      width: rect.width,
-      height: rect.height
-    });
-
-    const Live2DModel = PIXI.live2d.Live2DModel;
-    live2dModel = await Live2DModel.from(modelUrl, { autoInteract: true });
-
-    pixiApp.stage.addChild(live2dModel);
-
-    // 调整大小和位置
-    const scale = Math.min(rect.width / live2dModel.width, rect.height / live2dModel.height) * 0.9;
-    live2dModel.scale.set(scale);
-    live2dModel.x = rect.width / 2 - live2dModel.width / 2;
-    live2dModel.y = rect.height - live2dModel.height;
-
-    // 隐藏占位符
-    document.getElementById('live2dPlaceholder').style.display = 'none';
-
-    // 点击交互
-    live2dModel.on('pointerdown', () => {
-      const greetings = ['嗨!','你好呀!','找我有事吗?','在的!','摸我做什么呀~'];
-      showCharacterText(greetings[Math.floor(Math.random() * greetings.length)]);
-    });
-
-    console.log('Live2D 加载成功');
-    showCharacterText('你好呀,我来啦~ ✨');
-
-  } catch (e) {
-    console.error('Live2D 加载失败:', e);
-    document.getElementById('live2dPlaceholder').innerHTML = `
-      <div class="emoji">😢</div>
-      <div>Live2D 加载失败</div>
-      <div style="font-size:11px;margin-top:6px;color:#c9a8b1">网络问题,稍后会自动重试</div>
-    `;
-    // 5 秒后重试
-    setTimeout(initLive2D, 5000);
+  if (pixiApp) {
+    try { pixiApp.destroy(true, true); } catch(e) {}
+    pixiApp = null;
+    live2dModel = null;
   }
+
+  for (let i = currentModelIdx; i < LIVE2D_MODELS.length; i++) {
+    const modelUrl = LIVE2D_MODELS[i];
+    console.log(`尝试加载模型 ${i + 1}: ${modelUrl}`);
+
+    try {
+      const canvas = document.getElementById('live2dCanvas');
+      const rect = canvas.getBoundingClientRect();
+
+      pixiApp = new PIXI.Application({
+        view: canvas,
+        autoStart: true,
+        transparent: true,
+        backgroundAlpha: 0,
+        resolution: window.devicePixelRatio || 1,
+        antialias: true,
+        width: rect.width,
+        height: rect.height
+      });
+
+      const Live2DModel = PIXI.live2d.Live2DModel;
+      const modelPromise = Live2DModel.from(modelUrl, { autoInteract: true });
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000));
+
+      live2dModel = await Promise.race([modelPromise, timeoutPromise]);
+
+      pixiApp.stage.addChild(live2dModel);
+      const scale = Math.min(rect.width / live2dModel.width, rect.height / live2dModel.height) * 0.9;
+      live2dModel.scale.set(scale);
+      live2dModel.x = rect.width / 2 - live2dModel.width / 2;
+      live2dModel.y = rect.height - live2dModel.height;
+
+      document.getElementById('live2dPlaceholder').style.display = 'none';
+
+      live2dModel.on('pointerdown', () => {
+        const greetings = ['嗨!','你好呀!','找我有事吗?','在的!','摸我做什么呀~'];
+        showCharacterText(greetings[Math.floor(Math.random() * greetings.length)]);
+      });
+
+      console.log('✓ Live2D 加载成功:', modelUrl);
+      showCharacterText('你好呀,我来啦~ ✨');
+      currentModelIdx = i;
+      return;
+
+    } catch (e) {
+      console.warn(`模型 ${i + 1} 加载失败:`, e.message);
+      if (pixiApp) {
+        try { pixiApp.destroy(true, true); } catch(err) {}
+        pixiApp = null;
+      }
+    }
+  }
+
+  // 所有模型都失败
+  document.getElementById('live2dPlaceholder').innerHTML = `
+    <div class="emoji">🌸</div>
+    <div>Live2D 加载失败</div>
+    <div style="font-size:11px;margin-top:6px;color:#c9a8b1">CDN 网络问题</div>
+    <button class="quick-btn" style="margin-top:12px;font-size:12px;" onclick="currentModelIdx=0; initLive2D()">🔄 重新加载</button>
+  `;
 }
 
 // Live2D 动作触发
@@ -1043,19 +1088,92 @@ function handleWSMessage(data) {
   }
 }
 
+// ============ 主按钮统一操作 ============
+function handleMainAction() {
+  if (currentState === STATES.SPEAKING) { stopSpeaking(); return; }
+  if (currentState === STATES.LISTENING) { stopListening(); return; }
+  if (isProcessing) return;
+  startListening();
+}
+
+// 长按检测(切换唤醒词)
+let pressStartTime = 0;
+function setupMainBtn() {
+  const mainBtn = document.getElementById('mainActionBtn');
+
+  mainBtn.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    pressStartTime = Date.now();
+    pressTimer = setTimeout(() => {
+      toggleWakeMode();
+      pressStartTime = 0;
+    }, 800);
+  });
+
+  mainBtn.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
+  mainBtn.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
+
+  mainBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    pressStartTime = Date.now();
+    pressTimer = setTimeout(() => {
+      toggleWakeMode();
+      pressStartTime = 0;
+    }, 800);
+  });
+
+  mainBtn.addEventListener('touchend', (e) => {
+    clearTimeout(pressTimer);
+    if (Date.now() - pressStartTime < 800 && pressStartTime > 0) {
+      handleMainAction();
+    }
+  });
+
+  mainBtn.addEventListener('mouseenter', () => {
+    showTooltip('单击说话 · 长按/右键切换唤醒词');
+  });
+
+  mainBtn.addEventListener('mouseleave', () => { hideTooltip(); });
+}
+
+function showTooltip(text) {
+  const tip = document.getElementById('btnTooltip');
+  tip.textContent = text;
+  tip.classList.add('show');
+}
+
+function hideTooltip() {
+  document.getElementById('btnTooltip').classList.remove('show');
+}
+
+// 更新主按钮外观
+function updateMainBtnAppearance() {
+  const btn = document.getElementById('mainActionBtn');
+  btn.classList.remove('recording', 'wake-mode', 'speaking');
+
+  if (currentState === STATES.LISTENING) {
+    btn.classList.add('recording');
+    btn.textContent = '🎤';
+  } else if (currentState === STATES.SPEAKING) {
+    btn.classList.add('speaking');
+    btn.textContent = '🔊';
+  } else if (currentState === STATES.THINKING) {
+    btn.textContent = '💭';
+  } else if (wakeWordEnabled) {
+    btn.classList.add('wake-mode');
+    btn.textContent = '✨';
+  } else {
+    btn.textContent = '🌸';
+  }
+}
+
 // ============ 状态管理 ============
 function setState(state) {
   currentState = state;
-  const micBtn = document.getElementById('micBtn');
-
-  if (state === STATES.LISTENING) {
-    micBtn.classList.add('recording');
-  } else {
-    micBtn.classList.remove('recording');
-  }
+  updateMainBtnAppearance();
 
   const statusMap = {
-    [STATES.IDLE]: '就绪',
+    [STATES.IDLE]: wakeWordEnabled ? '监听唤醒词中' : '就绪',
     [STATES.WAKE_LISTENING]: '监听唤醒词...',
     [STATES.LISTENING]: '正在听...',
     [STATES.THINKING]: '思考中...',
@@ -1130,22 +1248,7 @@ function quickSay(text) {
   sendToAI(text);
 }
 
-// ============ 麦克风 ============
-function handleMicClick() {
-  if (isProcessing && currentState !== STATES.SPEAKING) return;
-
-  if (currentState === STATES.SPEAKING) {
-    stopSpeaking();
-    return;
-  }
-
-  if (currentState === STATES.LISTENING) {
-    stopListening();
-  } else {
-    startListening();
-  }
-}
-
+// ============ 麦克风检测 ============
 function checkBrowserSupport() {
   const hasRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
   const isSecure = window.location.protocol === 'https:' ||
@@ -1217,22 +1320,19 @@ function stopListening() {
 // ============ 唤醒词 ============
 function toggleWakeMode() {
   wakeWordEnabled = !wakeWordEnabled;
-  const btn = document.getElementById('wakeBtn');
 
   if (wakeWordEnabled) {
-    btn.classList.add('active');
-    btn.textContent = '✨';
-    document.getElementById('wakeStatus').textContent = '唤醒词:开启';
+    document.getElementById('wakeStatus').textContent = '唤醒词:开启 · 说 "LordKing"';
     startWakeListening();
-    showToast('✓ 唤醒词已开启,说 "LordKing"');
+    showToast('✓ 唤醒词已开启');
     showCharacterText('在听你呼唤呢~ 说 "LordKing" 唤醒我吧');
   } else {
-    btn.classList.remove('active');
-    btn.textContent = '🌙';
-    document.getElementById('wakeStatus').textContent = '唤醒词:关闭';
+    document.getElementById('wakeStatus').textContent = '点击🌸说话 · 长按开启唤醒';
     stopWakeListening();
     setState(STATES.IDLE);
+    showToast('唤醒词已关闭');
   }
+  updateMainBtnAppearance();
 }
 
 function startWakeListening() {
@@ -1481,7 +1581,8 @@ window.addEventListener('beforeunload', () => {
 loadSettings();
 loadVoices();
 connectWS();
-initLive2D();
+setupMainBtn();
+setTimeout(initLive2D, 500);
 </script>
 
 </body>
