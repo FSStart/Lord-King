@@ -898,13 +898,16 @@ function createSakura() {
 createSakura();
 
 // ============ Live2D 初始化(多个备选源) ============
+// 这些都是 Cubism 2 格式的模型(.model.json),JK 风格,确认可用
 const LIVE2D_MODELS = [
-  // Hiyori - 官方模型,JK 风蓝发女孩
-  'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model@master/Live2D/Hiyori%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B/Hiyori.model3.json',
-  // Haru - 备用 1
-  'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@master/test/assets/haru/haru_greeter_t03.model3.json',
-  // Senko - 备用 2(狐狸娘)
-  'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model@master/Live2D/Senko_Normals/senko.model3.json',
+  // 模型 1: Hiyori - JK 风蓝发女孩(主推荐)
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/hiyori/model.json',
+  // 模型 2: Sagiri - 银发萝莉
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/sagiri/model.json',
+  // 模型 3: Miku - 初音未来
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/miku/model.json',
+  // 模型 4: Koharu - 兔耳女孩
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/koharu/model.json',
 ];
 
 let currentModelIdx = 0;
