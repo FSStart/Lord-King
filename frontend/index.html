@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nexus AI · 二次元智能助手</title>
+<title>Lord King</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='75' font-size='80'%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E">
 <style>
 * {
   margin: 0;
@@ -112,15 +113,19 @@ header {
 }
 
 .logo {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #ec4899, #f97316);
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+  font-size: 28px;
+  filter: drop-shadow(0 4px 8px rgba(236, 72, 153, 0.3));
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(15deg); }
 }
 
 .brand h1 {
@@ -696,7 +701,7 @@ input[type="checkbox"] {
     <div class="logo-area">
       <div class="logo">🌸</div>
       <div class="brand">
-        <h1>Nexus AI</h1>
+        <h1>Lord King</h1>
         <p id="statusText">初始化中...</p>
       </div>
     </div>
@@ -717,7 +722,7 @@ input[type="checkbox"] {
 
       <div class="chat-messages" id="chatMessages">
         <div class="message ai">
-          <div class="bubble">你好呀!我是 Nexus,你的二次元助手 ✨ 你可以打字也可以语音和我聊天哦~</div>
+          <div class="bubble">你好呀!我是 Hiyori,你的 Lord King 智能助手 ✨ 可以打字也可以语音和我聊天哦~</div>
         </div>
       </div>
 
@@ -881,6 +886,8 @@ let aiResponseBuffer = '';
 let live2dModel = null;
 let pixiApp = null;
 let currentAudio = null;
+let pressTimer = null;
+let pressStartTime = 0;
 
 // ============ 樱花效果 ============
 function createSakura() {
@@ -1157,7 +1164,6 @@ function handleMainAction() {
 }
 
 // 长按检测(切换唤醒词)
-let pressStartTime = 0;
 function setupMainBtn() {
   const mainBtn = document.getElementById('mainActionBtn');
 
@@ -1493,38 +1499,71 @@ async function speakEdge(text) {
   try {
     setState(STATES.SPEAKING);
 
+    // 先停止任何正在播放的音频
+    if (currentAudio) {
+      try {
+        currentAudio.pause();
+        currentAudio.src = '';
+      } catch(e) {}
+      currentAudio = null;
+    }
+
     const voice = document.getElementById('edgeVoice').value;
     const speed = parseFloat(document.getElementById('ttsSpeed').value);
-    const rate = ((speed - 1) * 100).toFixed(0) + '%';
+    const speedPct = ((speed - 1) * 100).toFixed(0);
+    const rate = (speedPct >= 0 ? '+' : '') + speedPct + '%';
 
     const response = await fetch(`${API}/tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice, rate: rate.startsWith('-') ? rate : '+' + rate })
+      body: JSON.stringify({ text, voice, rate })
     });
 
-    if (!response.ok) throw new Error('TTS 服务异常');
+    if (!response.ok) throw new Error('TTS 服务异常 (HTTP ' + response.status + ')');
 
     const blob = await response.blob();
     const audioUrl = URL.createObjectURL(blob);
 
-    currentAudio = new Audio(audioUrl);
+    const audio = new Audio(audioUrl);
+    currentAudio = audio;
 
-    currentAudio.onended = () => {
-      setState(STATES.IDLE);
-      isProcessing = false;
-      currentAudio = null;
-      if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      if (currentAudio === audio) {
+        setState(STATES.IDLE);
+        isProcessing = false;
+        currentAudio = null;
+        if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+      }
     };
 
-    currentAudio.onerror = () => {
-      console.error('音频播放失败,降级到浏览器 TTS');
-      speakBrowser(text);
+    audio.onerror = () => {
+      URL.revokeObjectURL(audioUrl);
+      if (currentAudio === audio) {
+        console.error('音频播放失败');
+        currentAudio = null;
+        setState(STATES.IDLE);
+        isProcessing = false;
+      }
     };
 
-    await currentAudio.play();
+    // 用 try-catch 处理 play() 的 AbortError
+    try {
+      await audio.play();
+    } catch (playErr) {
+      // AbortError 是音频被新的请求打断,这不是错误,忽略
+      if (playErr.name === 'AbortError') {
+        console.log('音频被新请求中断,正常');
+        return;
+      }
+      throw playErr;
+    }
 
   } catch (e) {
+    if (e.name === 'AbortError') {
+      console.log('TTS 被中断,忽略');
+      return;
+    }
     console.error('Edge TTS 失败:', e);
     showToast('Edge TTS 失败,使用浏览器声音');
     speakBrowser(text);
@@ -1570,7 +1609,7 @@ function stopSpeaking() {
 }
 
 function testVoice() {
-  speak('你好,我是 Hiyori,你的二次元语音助手。Hello, this is a voice test.');
+  speak('你好,我是 Hiyori,你的智能助手。Hello, this is a voice test.');
 }
 
 // ============ 提示音 ============
