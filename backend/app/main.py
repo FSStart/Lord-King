@@ -17,6 +17,8 @@ from app.services.llm_service import get_llm_service
 from app.services.tools_service import TOOL_DEFINITIONS, execute_tool
 from app.services.auth_service import get_auth_service, UserRegister, UserLogin
 from app.services.affection_service import get_affection_service
+from app.services.reminder_service import get_reminder_service
+from app.services.companion_service import generate_proactive_message
 
 
 class Services:
@@ -25,6 +27,7 @@ class Services:
     redis = None
     auth = None
     affection = None
+    reminder = None
 
 
 services = Services()
@@ -69,6 +72,14 @@ async def lifespan(app: FastAPI):
             await services.affection.init_db(services.auth.pool)
     except Exception as ex:
         logger.error("Affection init failed: " + str(ex))
+
+    # 初始化日程提醒系统
+    try:
+        services.reminder = get_reminder_service()
+        if services.auth and services.auth.pool:
+            await services.reminder.init_db(services.auth.pool)
+    except Exception as ex:
+        logger.error("Reminder init failed: " + str(ex))
 
     logger.info("OK Lord King startup complete!")
     yield
@@ -332,6 +343,150 @@ async def get_relationship(current_user=Depends(get_current_user)):
     return rel
 
 
+# ============ 日程提醒 API ============
+
+class ReminderCreate(BaseModel):
+    content: str
+    remind_at: str  # ISO 格式 "2026-05-26T09:00:00"
+
+
+class ReminderFromText(BaseModel):
+    text: str  # 自然语言, 如 "明天9点提醒我开会"
+
+
+@app.get("/reminders")
+async def list_reminders(current_user=Depends(get_current_user)):
+    """获取所有提醒"""
+    if not services.reminder:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    user_id = int(current_user["user_id"])
+    reminders = await services.reminder.list_reminders(user_id)
+    return {"reminders": reminders, "count": len(reminders)}
+
+
+@app.post("/reminders")
+async def create_reminder(req: ReminderCreate, current_user=Depends(get_current_user)):
+    """直接创建提醒"""
+    if not services.reminder:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    user_id = int(current_user["user_id"])
+    try:
+        remind_at = datetime.fromisoformat(req.remind_at.replace("Z", "+00:00"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="时间格式错误,请用 ISO 格式")
+    rid = await services.reminder.create_reminder(user_id, req.content, remind_at)
+    if not rid:
+        raise HTTPException(status_code=500, detail="创建失败")
+    return {"id": rid, "content": req.content, "remind_at": req.remind_at}
+
+
+@app.post("/reminders/parse")
+async def parse_reminder(req: ReminderFromText, current_user=Depends(get_current_user)):
+    """从自然语言文本创建提醒(智能解析)"""
+    if not services.reminder:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    user_id = int(current_user["user_id"])
+    remind_at = services.reminder.parse_time(req.text)
+    if not remind_at:
+        raise HTTPException(status_code=400, detail="无法解析时间,请说得清楚一些,比如'明天9点'")
+    content = services.reminder.extract_content(req.text)
+    rid = await services.reminder.create_reminder(user_id, content, remind_at)
+    if not rid:
+        raise HTTPException(status_code=500, detail="创建失败")
+    return {
+        "id": rid,
+        "content": content,
+        "remind_at": remind_at.isoformat(),
+        "remind_at_human": remind_at.strftime("%Y-%m-%d %H:%M")
+    }
+
+
+@app.get("/reminders/pending")
+async def get_pending_reminders(current_user=Depends(get_current_user)):
+    """获取所有到期未提醒的(前端轮询此接口)"""
+    if not services.reminder:
+        return {"reminders": []}
+    user_id = int(current_user["user_id"])
+    pending = await services.reminder.get_pending_for_user(user_id)
+    return {"reminders": pending, "count": len(pending)}
+
+
+@app.delete("/reminders/{reminder_id}")
+async def delete_reminder(reminder_id: int, current_user=Depends(get_current_user)):
+    """删除提醒"""
+    if not services.reminder:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    user_id = int(current_user["user_id"])
+    ok = await services.reminder.delete_reminder(user_id, reminder_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="提醒不存在")
+    return {"status": "deleted"}
+
+
+@app.post("/reminders/{reminder_id}/done")
+async def mark_reminder_done(reminder_id: int, current_user=Depends(get_current_user)):
+    """标记完成"""
+    if not services.reminder:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    user_id = int(current_user["user_id"])
+    ok = await services.reminder.mark_done(user_id, reminder_id)
+    return {"status": "ok" if ok else "failed"}
+
+
+# ============ 主动陪伴 API ============
+
+@app.get("/proactive-greeting")
+async def get_proactive_greeting(current_user=Depends(get_current_user)):
+    """
+    获取一条主动问候(用户打开网页时调用)
+    根据当前时间、好感度、上次活跃时间生成
+    """
+    user_id = int(current_user["user_id"])
+    nickname = current_user.get("username", "主人")
+
+    # 获取用户信息
+    if services.auth:
+        user_info = await services.auth.get_user(user_id)
+        if user_info and user_info.get("nickname"):
+            nickname = user_info["nickname"]
+
+    # 获取关系数据
+    affection_level = "stranger"
+    last_interaction = None
+    last_active_date = None
+    if services.affection:
+        rel = await services.affection.get_relationship(user_id)
+        affection_level = rel.get("level_en", "stranger")
+        if rel.get("last_interaction"):
+            try:
+                last_interaction = datetime.fromisoformat(rel["last_interaction"])
+            except Exception:
+                pass
+        # last_active_date 在 DB 里, 也查一下
+        if services.auth and services.auth.pool:
+            try:
+                async with services.auth.pool.acquire() as conn:
+                    row = await conn.fetchrow(
+                        "SELECT last_active_date FROM user_relationships WHERE user_id = $1",
+                        user_id
+                    )
+                    if row and row["last_active_date"]:
+                        last_active_date = row["last_active_date"]
+            except Exception:
+                pass
+
+    msg = await generate_proactive_message(
+        user_id=user_id,
+        nickname=nickname,
+        affection_level=affection_level,
+        last_interaction=last_interaction,
+        last_active_date=last_active_date
+    )
+    if msg:
+        return {"has_greeting": True, **msg}
+    return {"has_greeting": False}
+
+
 # ============ 历史 ============
 
 @app.delete("/history")
@@ -378,7 +533,7 @@ async def text_to_speech(request: TTSRequest):
 
 # ============ 工具调用 ============
 
-async def chat_with_tools(user_message, history, system_prompt, client_id):
+async def chat_with_tools(user_message, history, system_prompt, client_id, user_id=None):
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(history)
     messages.append({"role": "user", "content": user_message})
@@ -417,7 +572,8 @@ async def chat_with_tools(user_message, history, system_prompt, client_id):
 
                 logger.info("[Tool] " + tool_name + " " + str(tool_args))
                 await manager.send(client_id, {"type": "tool_call", "name": tool_name, "args": tool_args})
-                tool_result = await execute_tool(tool_name, tool_args)
+                # 传 user_id 给工具(reminder 等需要)
+                tool_result = await execute_tool(tool_name, tool_args, user_id=int(user_id) if user_id else None)
                 messages.append({
                     "role": "tool", "tool_call_id": tc.id, "content": tool_result
                 })
@@ -512,7 +668,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
             full_response = ""
             try:
                 if services.llm:
-                    full_response = await chat_with_tools(user_message, history, system_prompt, client_id)
+                    full_response = await chat_with_tools(user_message, history, system_prompt, client_id, user_id=user_id)
                 else:
                     full_response = "LLM not ready"
                     await manager.send(client_id, {"type": "chunk", "content": full_response})

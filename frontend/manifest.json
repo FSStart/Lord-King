@@ -1,0 +1,27 @@
+{
+  "name": "Lord King",
+  "short_name": "LordKing",
+  "description": "你的二次元 AI 智能助手 - Hiyori 萌妹陪伴",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fde2e7",
+  "theme_color": "#ec4899",
+  "lang": "zh-CN",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"]
+}

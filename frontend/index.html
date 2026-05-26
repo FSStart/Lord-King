@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lord King</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ec4899">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lord King">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='75' font-size='80'%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='75' font-size='80'%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E">
 <style>
 * {
@@ -2485,6 +2493,103 @@ window.addEventListener('beforeunload', () => {
   if (wakeRecognition) wakeRecognition.stop();
 });
 
+// ============ 日程提醒系统 ============
+
+let reminderCheckInterval = null;
+
+async function startReminderCheck() {
+  // 请求通知权限
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  // 每 30 秒检查一次
+  if (reminderCheckInterval) clearInterval(reminderCheckInterval);
+  reminderCheckInterval = setInterval(checkPendingReminders, 30000);
+  // 立即检查一次
+  setTimeout(checkPendingReminders, 3000);
+}
+
+async function checkPendingReminders() {
+  if (!authToken) return;
+  try {
+    const response = await fetch(`${API}/reminders/pending`, {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data.reminders && data.reminders.length > 0) {
+      data.reminders.forEach(r => triggerReminder(r));
+    }
+  } catch (e) {
+    console.error('Check reminders failed:', e);
+  }
+}
+
+function triggerReminder(reminder) {
+  const text = '⏰ 提醒: ' + reminder.content;
+  // 1. 浏览器通知
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Lord King 提醒', {
+      body: reminder.content,
+      icon: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%2275%22 font-size=%2280%22%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E',
+      tag: 'reminder-' + reminder.id,
+      requireInteraction: true
+    });
+  }
+  // 2. 聊天框消息
+  addMessage('ai', text + ' 喵~ 主人记得做哦~ (◕‿◕✿)');
+  // 3. 语音提醒
+  if (document.getElementById('autoSpeak') && document.getElementById('autoSpeak').checked) {
+    speak('主人主人~ 提醒时间到啦! ' + reminder.content);
+  }
+  showToast('⏰ ' + reminder.content);
+}
+
+// 暴露给 Hiyori 工具调用使用
+async function createReminderFromText(text) {
+  if (!authToken) return null;
+  try {
+    const response = await fetch(`${API}/reminders/parse`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + authToken
+      },
+      body: JSON.stringify({ text })
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+// ============ 主动陪伴系统 ============
+
+async function loadProactiveGreeting() {
+  if (!authToken) return;
+  try {
+    const response = await fetch(`${API}/proactive-greeting`, {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data.has_greeting && data.message) {
+      // 稍微延迟,让用户先看到界面
+      setTimeout(() => {
+        addMessage('ai', data.message);
+        showCharacterText(data.message.length > 50 ?
+          data.message.slice(0, 50) + '...' : data.message);
+        if (document.getElementById('autoSpeak') && document.getElementById('autoSpeak').checked) {
+          speak(data.message);
+        }
+      }, 2000);
+    }
+  } catch (e) {
+    console.error('Proactive greeting failed:', e);
+  }
+}
+
 // ============ 好感度系统 ============
 
 let currentRelationship = null;
@@ -2839,6 +2944,19 @@ if (authToken && currentUser) {
   setTimeout(initLive2D, 500);
   // 加载好感度
   loadRelationship();
+  // 启动日程提醒检查
+  startReminderCheck();
+  // 加载主动问候(2秒后)
+  setTimeout(loadProactiveGreeting, 2000);
+
+  // PWA - 注册 Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW 注册成功:', reg.scope))
+        .catch(err => console.log('SW 注册失败:', err));
+    });
+  }
 
   // 自动开启唤醒词监听
 setTimeout(async () => {
