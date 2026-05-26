@@ -457,11 +457,15 @@ main {
   position: fixed;
   bottom: 24px;
   right: 24px;
+.main-action-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
   width: 60px;
   height: 60px;
   border-radius: 50%;
   border: none;
-  cursor: pointer;
+  cursor: default;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -471,10 +475,7 @@ main {
   color: white;
   z-index: 20;
   box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
-}
-
-.main-action-btn:hover {
-  transform: scale(1.1) rotate(15deg);
+  pointer-events: none;
 }
 
 .main-action-btn.recording {
@@ -484,15 +485,59 @@ main {
 
 .main-action-btn.wake-mode {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  animation: gentleGlow 2s ease-in-out infinite;
 }
 
 .main-action-btn.speaking {
   background: linear-gradient(135deg, #10b981, #059669);
 }
 
+.main-action-btn.thinking {
+  background: linear-gradient(135deg, #a855f7, #8b5cf6);
+}
+
+.main-action-btn.error {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.15); box-shadow: 0 4px 28px rgba(239, 68, 68, 0.6); }
+}
+
+@keyframes gentleGlow {
+  0%, 100% { box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4); }
+  50% { box-shadow: 0 6px 28px rgba(251, 191, 36, 0.7); }
+}
+
+/* 状态文字标签 */
+.status-label {
+  position: fixed;
+  bottom: 24px;
+  right: 92px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 30px 0 0 30px;
+  font-size: 12px;
+  color: #6b4f5c;
+  font-weight: 500;
+  z-index: 19;
+  box-shadow: -4px 6px 20px rgba(236, 72, 153, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-right: none;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.3s;
+}
+
+.status-label.show {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .btn-tooltip {
@@ -674,6 +719,601 @@ input[type="checkbox"] {
   50% { transform: translateY(-10px); }
 }
 
+/* ============ 好感度显示 ============ */
+.affection-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-right: 4px;
+}
+
+.affection-display:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+}
+
+.affection-icon {
+  font-size: 20px;
+  animation: pulse-heart 2s ease-in-out infinite;
+}
+
+@keyframes pulse-heart {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.affection-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.affection-level {
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.affection-bar-wrap {
+  width: 60px;
+  height: 4px;
+  background: rgba(236, 72, 153, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.affection-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ec4899, #f97316);
+  border-radius: 2px;
+  transition: width 0.6s;
+}
+
+.affection-value {
+  font-size: 11px;
+  color: #ec4899;
+  font-weight: 600;
+}
+
+/* 好感度详情面板 */
+.affection-detail-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.affection-detail-modal.show { display: flex; }
+
+.affection-detail-content {
+  background: linear-gradient(135deg, rgba(255,255,255,0.97), rgba(255,243,247,0.97));
+  border-radius: 20px;
+  padding: 30px;
+  width: 100%;
+  max-width: 360px;
+  margin: 20px;
+  box-shadow: 0 20px 60px rgba(236, 72, 153, 0.3);
+  position: relative;
+}
+
+.affection-detail-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.05);
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #6b4f5c;
+}
+
+.affection-detail-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.affection-detail-icon {
+  font-size: 64px;
+  animation: heart-bounce 2s ease-in-out infinite;
+}
+
+@keyframes heart-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.affection-detail-level {
+  font-size: 22px;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.affection-detail-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.affection-stat {
+  background: rgba(236, 72, 153, 0.06);
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.affection-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ec4899;
+}
+
+.affection-stat-label {
+  font-size: 11px;
+  color: #9f7a85;
+  margin-top: 4px;
+}
+
+.affection-progress {
+  margin-top: 20px;
+}
+
+.affection-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b4f5c;
+  margin-bottom: 6px;
+}
+
+.affection-progress-bar {
+  height: 8px;
+  background: rgba(236, 72, 153, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.affection-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ec4899, #f97316);
+  border-radius: 4px;
+  transition: width 0.6s;
+}
+
+/* 好感度变化提示 */
+.affection-toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #ec4899;
+  font-weight: 600;
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.4s;
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.2);
+}
+
+.affection-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 升级通知 */
+.level-up-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.level-up-modal.show { display: flex; }
+
+.level-up-card {
+  background: linear-gradient(135deg, #fce7f3, #fed7c4, #ffd5a8);
+  padding: 40px 36px;
+  border-radius: 28px;
+  text-align: center;
+  max-width: 380px;
+  margin: 20px;
+  box-shadow: 0 30px 80px rgba(236, 72, 153, 0.4);
+  animation: levelUpAppear 0.6s ease-out;
+}
+
+@keyframes levelUpAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+.level-up-icon {
+  font-size: 80px;
+  animation: heart-bounce 1.5s ease-in-out infinite;
+}
+
+.level-up-title {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 16px 0 12px;
+}
+
+.level-up-message {
+  color: #831843;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.level-up-confirm {
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  border: none;
+  color: white;
+  padding: 12px 32px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+}
+
+/* ============ 登录/注册页 ============ */
+.auth-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fde2e7 0%, #fed7c4 35%, #ffd5a8 70%, #ffbb8a 100%);
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(251, 113, 133, 0.2);
+  margin: 20px;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.auth-logo {
+  font-size: 56px;
+  margin-bottom: 8px;
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+.auth-header h2 {
+  font-size: 28px;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.auth-subtitle {
+  color: #9f7a85;
+  font-size: 13px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #9f7a85;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.auth-tab.active {
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  color: white;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.auth-form .form-row {
+  margin-bottom: 16px;
+}
+
+.auth-form label {
+  display: block;
+  font-size: 13px;
+  color: #6b4f5c;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.hint-text {
+  font-size: 11px;
+  color: #b89aa3;
+  font-weight: normal;
+}
+
+.auth-form input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  color: #4a3f4d;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.auth-form input:focus {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(236, 72, 153, 0.5);
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+}
+
+.auth-submit {
+  width: 100%;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  border: none;
+  color: white;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.auth-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-msg {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  min-height: 36px;
+  display: none;
+}
+
+.auth-msg.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #b91c1c;
+  display: block;
+}
+
+.auth-msg.success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #15803d;
+  display: block;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 24px;
+  color: #b89aa3;
+}
+
+/* ============ 用户菜单 ============ */
+.user-menu-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  color: #6b4f5c;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.user-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.user-menu {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(251, 113, 133, 0.2);
+  display: none;
+  z-index: 50;
+}
+
+.user-menu.open { display: block; }
+
+.user-menu-header {
+  padding: 12px;
+  border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+  margin-bottom: 4px;
+}
+
+.user-menu-header > div:first-child {
+  font-weight: 600;
+  color: #6b4f5c;
+  font-size: 14px;
+}
+
+.user-menu-sub {
+  font-size: 11px;
+  color: #b89aa3;
+  margin-top: 2px;
+}
+
+.user-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: #6b4f5c;
+  font-size: 13px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-menu-item:hover {
+  background: rgba(236, 72, 153, 0.1);
+}
+
+/* ============ 模态框 ============ */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  margin: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  color: #6b4f5c;
+  font-size: 18px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.modal-content .form-row {
+  margin-bottom: 14px;
+}
+
+.modal-content label {
+  display: block;
+  font-size: 13px;
+  color: #6b4f5c;
+  margin-bottom: 6px;
+}
+
+.modal-content input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.modal-btn.cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: #6b4f5c;
+}
+
+.modal-btn.confirm {
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  color: white;
+}
+
 /* 响应式 */
 @media (max-width: 1100px) {
   main {
@@ -694,6 +1334,64 @@ input[type="checkbox"] {
 
 <div class="bg-container" id="bgContainer"></div>
 
+<!-- ============ 登录/注册面板 ============ -->
+<div class="auth-panel" id="authPanel" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">🌸</div>
+      <h2>Lord King</h2>
+      <p class="auth-subtitle">你的二次元智能助手</p>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="loginTab" onclick="switchAuthTab('login')">登录</button>
+      <button class="auth-tab" id="registerTab" onclick="switchAuthTab('register')">注册</button>
+    </div>
+
+    <!-- 登录表单 -->
+    <div class="auth-form" id="loginForm">
+      <div class="form-row">
+        <label>用户名</label>
+        <input type="text" id="loginUsername" placeholder="输入用户名" autocomplete="username">
+      </div>
+      <div class="form-row">
+        <label>密码</label>
+        <input type="password" id="loginPassword" placeholder="输入密码" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="auth-submit" onclick="doLogin()" id="loginBtn">登录</button>
+      <div class="auth-msg" id="loginMsg"></div>
+    </div>
+
+    <!-- 注册表单 -->
+    <div class="auth-form" id="registerForm" style="display:none;">
+      <div class="form-row">
+        <label>用户名 <span class="hint-text">(3-20 个字符,字母数字下划线)</span></label>
+        <input type="text" id="regUsername" placeholder="输入用户名" autocomplete="username">
+      </div>
+      <div class="form-row">
+        <label>密码 <span class="hint-text">(至少 6 个字符)</span></label>
+        <input type="password" id="regPassword" placeholder="输入密码" autocomplete="new-password">
+      </div>
+      <div class="form-row">
+        <label>昵称 <span class="hint-text">(可选,Hiyori 会这样称呼你)</span></label>
+        <input type="text" id="regNickname" placeholder="输入昵称"
+               onkeydown="if(event.key==='Enter') doRegister()">
+      </div>
+      <button class="auth-submit" onclick="doRegister()" id="registerBtn">注册</button>
+      <div class="auth-msg" id="registerMsg"></div>
+    </div>
+
+    <div class="auth-footer">
+      <small>🌸 Powered by Hiyori AI</small>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 主应用 ============ -->
+<div id="mainApp" style="display:none;">
+
 <div class="container">
 
   <!-- 顶部 -->
@@ -705,7 +1403,28 @@ input[type="checkbox"] {
         <p id="statusText">初始化中...</p>
       </div>
     </div>
-    <div style="display:flex;">
+    <div style="display:flex;position:relative;align-items:center;gap:8px;">
+      <!-- 好感度显示 -->
+      <div class="affection-display" id="affectionDisplay" onclick="showAffectionDetail()" style="display:none;">
+        <span class="affection-icon" id="affectionIcon">🌱</span>
+        <div class="affection-info">
+          <div class="affection-level" id="affectionLevel">初识</div>
+          <div class="affection-bar-wrap">
+            <div class="affection-bar" id="affectionBar" style="width:0%"></div>
+          </div>
+        </div>
+        <span class="affection-value" id="affectionValue">0</span>
+      </div>
+
+      <button class="user-menu-btn" id="userMenuBtn" onclick="toggleUserMenu()">👤</button>
+      <div class="user-menu" id="userMenu">
+        <div class="user-menu-header">
+          <div id="userMenuNickname"></div>
+          <div id="userMenuUsername" class="user-menu-sub"></div>
+        </div>
+        <button class="user-menu-item" onclick="showChangePassword()">🔐 修改密码</button>
+        <button class="user-menu-item" onclick="doLogout()" style="color:#dc2626;">🚪 退出登录</button>
+      </div>
       <button class="btn-icon" onclick="toggleSettings()" title="设置">⚙️</button>
     </div>
   </header>
@@ -722,7 +1441,7 @@ input[type="checkbox"] {
 
       <div class="chat-messages" id="chatMessages">
         <div class="message ai">
-          <div class="bubble">你好呀!我是 Hiyori,你的 Lord King 智能助手 ✨ 可以打字也可以语音和我聊天哦~</div>
+          <div class="bubble">你好呀!我是 Hiyori,你的 Lord King 智能助手 ✨ 直接说 "LordKing" 唤醒我,或者打字聊天哦~</div>
         </div>
       </div>
 
@@ -749,7 +1468,7 @@ input[type="checkbox"] {
     <div>
       <span class="dot" id="connDot"></span>
       <span id="connText">连接中</span>
-      <span style="margin-left:16px;" id="wakeStatus">点击🌸说话 · 长按开启唤醒</span>
+      <span style="margin-left:16px;" id="wakeStatus">正在准备语音助手...</span>
     </div>
     <div id="userIdShort"></div>
   </footer>
@@ -772,12 +1491,11 @@ input[type="checkbox"] {
   <div id="characterText">点击下方花花开始对话</div>
 </div>
 
-<!-- 单一主操作按钮 -->
-<button class="main-action-btn" id="mainActionBtn"
-        onclick="handleMainAction()"
-        oncontextmenu="event.preventDefault(); toggleWakeMode(); return false;">
-  🌸
-</button>
+<!-- 状态文字标签 -->
+<div class="status-label" id="statusLabel">监听中...</div>
+
+<!-- 主状态指示器(不可点击,纯显示) -->
+<div class="main-action-btn" id="mainActionBtn">🌸</div>
 
 <div class="btn-tooltip" id="btnTooltip"></div>
 
@@ -836,16 +1554,94 @@ input[type="checkbox"] {
   <button class="quick-btn" style="width:100%;margin-top:8px;color:#dc2626;" onclick="clearAll()">🗑️ 清空历史</button>
 
   <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(236,72,153,0.1);font-size:12px;color:#9f7a85;line-height:1.8;">
-    <p>💡 <strong>按钮说明:</strong></p>
-    <p>• 单击 🌸 → 直接说话</p>
-    <p>• 右键 🌸 → 切换唤醒词模式</p>
-    <p>• 长按 🌸 → 切换唤醒词(800ms)</p>
-    <p>• 唤醒词模式下说 "LordKing"</p>
+    <p>💡 <strong>使用说明:</strong></p>
+    <p>• ✨ 自动监听唤醒词</p>
+    <p>• 说 "LordKing" 唤醒我</p>
+    <p>• 或直接在输入框打字</p>
     <p>• 空格键也可以快速说话</p>
+    <p>• 右下角 🌸 显示当前状态</p>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- 好感度变化提示 -->
+<div class="affection-toast" id="affectionToast"></div>
+
+<!-- 好感度详情弹窗 -->
+<div class="affection-detail-modal" id="affectionDetailModal" onclick="if(event.target===this) hideAffectionDetail()">
+  <div class="affection-detail-content">
+    <button class="affection-detail-close" onclick="hideAffectionDetail()">✕</button>
+    <div class="affection-detail-header">
+      <div class="affection-detail-icon" id="detailIcon">🌱</div>
+      <div class="affection-detail-level" id="detailLevel">初识</div>
+    </div>
+    <div class="affection-detail-stats">
+      <div class="affection-stat">
+        <div class="affection-stat-value" id="detailAffection">0</div>
+        <div class="affection-stat-label">好感度</div>
+      </div>
+      <div class="affection-stat">
+        <div class="affection-stat-value" id="detailMessages">0</div>
+        <div class="affection-stat-label">总对话</div>
+      </div>
+      <div class="affection-stat">
+        <div class="affection-stat-value" id="detailDays">0</div>
+        <div class="affection-stat-label">活跃天数</div>
+      </div>
+      <div class="affection-stat">
+        <div class="affection-stat-value" id="detailStreak">0</div>
+        <div class="affection-stat-label">连续天数 🔥</div>
+      </div>
+    </div>
+    <div class="affection-progress">
+      <div class="affection-progress-label">
+        <span id="detailProgressLabel">距离下一级</span>
+        <span id="detailProgressValue">11</span>
+      </div>
+      <div class="affection-progress-bar">
+        <div class="affection-progress-fill" id="detailProgressFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 升级通知 -->
+<div class="level-up-modal" id="levelUpModal">
+  <div class="level-up-card">
+    <div class="level-up-icon" id="levelUpIcon">💕</div>
+    <div class="level-up-title" id="levelUpTitle">关系升级!</div>
+    <div class="level-up-message" id="levelUpMessage"></div>
+    <button class="level-up-confirm" onclick="hideLevelUp()">好的~ ❤</button>
+  </div>
+</div>
+
+</div> <!-- /mainApp -->
+
+<!-- 修改密码弹窗 -->
+<div class="modal" id="changePasswordModal" style="display:none;">
+  <div class="modal-content">
+    <h3>修改密码</h3>
+    <div class="form-row">
+      <label>当前密码</label>
+      <input type="password" id="oldPassword" placeholder="输入当前密码">
+    </div>
+    <div class="form-row">
+      <label>新密码</label>
+      <input type="password" id="newPassword" placeholder="至少 6 位">
+    </div>
+    <div class="form-row">
+      <label>确认新密码</label>
+      <input type="password" id="confirmPassword" placeholder="再输一次"
+             onkeydown="if(event.key==='Enter') doChangePassword()">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="hideChangePassword()">取消</button>
+      <button class="modal-btn confirm" onclick="doChangePassword()">确认</button>
+    </div>
+    <div class="auth-msg" id="changePasswordMsg"></div>
+  </div>
+</div>
 
 <!-- Live2D SDK + PixiJS -->
 <!-- Live2D SDK + PixiJS - 注意加载顺序 -->
@@ -860,9 +1656,23 @@ input[type="checkbox"] {
 const API = window.location.protocol + '//' + window.location.host;
 const WS_URL = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;
 
-let userId = localStorage.getItem('userId') || 'user_' + Math.random().toString(36).substr(2, 9);
-localStorage.setItem('userId', userId);
-document.getElementById('userIdShort').textContent = userId.slice(0, 12);
+// 用户状态
+let authToken = localStorage.getItem('authToken') || null;
+let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+let userId = currentUser ? currentUser.user_id : null;
+
+// 检查是否已登录
+if (!authToken || !currentUser) {
+  // 未登录,显示登录页
+  document.getElementById('authPanel').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+} else {
+  // 已登录
+  document.getElementById('authPanel').style.display = 'none';
+  document.getElementById('mainApp').style.display = '';
+  document.getElementById('userIdShort').textContent = currentUser.nickname || currentUser.username;
+  document.getElementById('userMenuBtn').textContent = '👤 ' + (currentUser.nickname || currentUser.username);
+}
 
 // 状态
 const STATES = {
@@ -1104,7 +1914,11 @@ if (synth.onvoiceschanged !== undefined) {
 
 // ============ WebSocket ============
 function connectWS() {
-  ws = new WebSocket(`${WS_URL}/ws/${userId}`);
+  if (!authToken) {
+    console.log('未登录,跳过 WS 连接');
+    return;
+  }
+  ws = new WebSocket(`${WS_URL}/ws/${authToken}`);
 
   ws.onopen = () => {
     document.getElementById('connDot').className = 'dot connected';
@@ -1139,6 +1953,13 @@ function handleWSMessage(data) {
     if (!aiResponseBuffer) {
       addMessage('ai', fullResponse);
     }
+    // 处理好感度变化
+    if (data.affection) {
+      updateAffectionDisplay(data.affection);
+      if (data.affection.affection_change && data.affection.affection_change !== 0) {
+        showAffectionToast(data.affection.affection_change);
+      }
+    }
     if (document.getElementById('autoSpeak').checked) {
       speak(fullResponse);
       showCharacterText(fullResponse.length > 50 ? fullResponse.slice(0, 50) + '...' : fullResponse);
@@ -1147,6 +1968,8 @@ function handleWSMessage(data) {
       isProcessing = false;
     }
     aiResponseBuffer = '';
+  } else if (data.type === 'level_up') {
+    showLevelUp(data.level_up);
   } else if (data.type === 'error') {
     addMessage('ai', '出错了: ' + (data.error || '未知错误'));
     setState(STATES.IDLE);
@@ -1155,82 +1978,67 @@ function handleWSMessage(data) {
   }
 }
 
-// ============ 主按钮统一操作 ============
-function handleMainAction() {
-  if (currentState === STATES.SPEAKING) { stopSpeaking(); return; }
-  if (currentState === STATES.LISTENING) { stopListening(); return; }
-  if (isProcessing) return;
-  startListening();
-}
+// ============ 主按钮(纯状态显示,不可点击) ============
 
-// 长按检测(切换唤醒词)
-function setupMainBtn() {
-  const mainBtn = document.getElementById('mainActionBtn');
-
-  mainBtn.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
-    pressStartTime = Date.now();
-    pressTimer = setTimeout(() => {
-      toggleWakeMode();
-      pressStartTime = 0;
-    }, 800);
-  });
-
-  mainBtn.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
-  mainBtn.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
-
-  mainBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    pressStartTime = Date.now();
-    pressTimer = setTimeout(() => {
-      toggleWakeMode();
-      pressStartTime = 0;
-    }, 800);
-  });
-
-  mainBtn.addEventListener('touchend', (e) => {
-    clearTimeout(pressTimer);
-    if (Date.now() - pressStartTime < 800 && pressStartTime > 0) {
-      handleMainAction();
-    }
-  });
-
-  mainBtn.addEventListener('mouseenter', () => {
-    showTooltip('单击说话 · 长按/右键切换唤醒词');
-  });
-
-  mainBtn.addEventListener('mouseleave', () => { hideTooltip(); });
-}
-
-function showTooltip(text) {
-  const tip = document.getElementById('btnTooltip');
-  tip.textContent = text;
-  tip.classList.add('show');
-}
-
-function hideTooltip() {
-  document.getElementById('btnTooltip').classList.remove('show');
-}
-
-// 更新主按钮外观
 function updateMainBtnAppearance() {
   const btn = document.getElementById('mainActionBtn');
-  btn.classList.remove('recording', 'wake-mode', 'speaking');
+  const label = document.getElementById('statusLabel');
+  btn.classList.remove('recording', 'wake-mode', 'speaking', 'thinking', 'error');
+
+  let labelText = '';
+  let showLabel = true;
 
   if (currentState === STATES.LISTENING) {
     btn.classList.add('recording');
     btn.textContent = '🎤';
+    labelText = '听你说话呢~';
   } else if (currentState === STATES.SPEAKING) {
     btn.classList.add('speaking');
     btn.textContent = '🔊';
+    labelText = '说话中...';
   } else if (currentState === STATES.THINKING) {
+    btn.classList.add('thinking');
     btn.textContent = '💭';
+    labelText = '思考中...';
   } else if (wakeWordEnabled) {
     btn.classList.add('wake-mode');
     btn.textContent = '✨';
+    labelText = '说 "LordKing" 唤醒';
   } else {
+    btn.classList.add('error');
     btn.textContent = '🌸';
+    labelText = '点这里启用语音';
+    // 在无唤醒模式下,让 btn 可以点击重新启用
+    btn.style.pointerEvents = 'auto';
+    btn.style.cursor = 'pointer';
+    btn.onclick = () => {
+      btn.onclick = null;
+      btn.style.pointerEvents = 'none';
+      btn.style.cursor = 'default';
+      toggleWakeMode();
+    };
+    label.textContent = labelText;
+    label.classList.add('show');
+    return;
   }
+
+  // 唤醒模式下不可点击
+  btn.style.pointerEvents = 'none';
+  btn.style.cursor = 'default';
+  btn.onclick = null;
+
+  if (showLabel && labelText) {
+    label.textContent = labelText;
+    label.classList.add('show');
+  } else {
+    label.classList.remove('show');
+  }
+}
+
+// 不再需要复杂的 setupMainBtn,简化
+function setupMainBtn() {
+  // 自动开启唤醒词监听
+  console.log('页面加载完成,准备自动开启唤醒词监听...');
 }
 
 // ============ 状态管理 ============
@@ -1388,15 +2196,14 @@ function toggleWakeMode() {
   wakeWordEnabled = !wakeWordEnabled;
 
   if (wakeWordEnabled) {
-    document.getElementById('wakeStatus').textContent = '唤醒词:开启 · 说 "LordKing"';
+    document.getElementById('wakeStatus').textContent = '✨ 监听中 · 说 "LordKing" 唤醒';
     startWakeListening();
-    showToast('✓ 唤醒词已开启');
     showCharacterText('在听你呼唤呢~ 说 "LordKing" 唤醒我吧');
   } else {
-    document.getElementById('wakeStatus').textContent = '点击🌸说话 · 长按开启唤醒';
+    document.getElementById('wakeStatus').textContent = '语音已关闭 · 可使用键盘输入';
     stopWakeListening();
     setState(STATES.IDLE);
-    showToast('唤醒词已关闭');
+    showToast('语音监听已关闭');
   }
   updateMainBtnAppearance();
 }
@@ -1462,8 +2269,7 @@ function sendToAI(text) {
   setTimeout(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
-        message: text,
-        user_id: userId
+        message: text
       }));
     } else {
       addMessage('ai', '连接已断开,请稍候...');
@@ -1636,7 +2442,10 @@ function toggleSettings() {
 async function clearAll() {
   if (!confirm('清空所有对话记录?')) return;
   try {
-    await fetch(`${API}/history/${userId}`, { method: 'DELETE' });
+    await fetch(`${API}/history`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
     document.getElementById('chatMessages').innerHTML = `
       <div class="message ai">
         <div class="bubble">记录已清空 ✨ 重新开始聊天吧~</div>
@@ -1676,12 +2485,397 @@ window.addEventListener('beforeunload', () => {
   if (wakeRecognition) wakeRecognition.stop();
 });
 
-// ============ 初始化 ============
-loadSettings();
-loadVoices();
-connectWS();
-setupMainBtn();
-setTimeout(initLive2D, 500);
+// ============ 好感度系统 ============
+
+let currentRelationship = null;
+
+async function loadRelationship() {
+  if (!authToken) return;
+  try {
+    const response = await fetch(`${API}/relationship`, {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    currentRelationship = data;
+    renderAffectionDisplay(data);
+  } catch (e) {
+    console.error('Load relationship failed:', e);
+  }
+}
+
+function renderAffectionDisplay(rel) {
+  const display = document.getElementById('affectionDisplay');
+  if (!display) return;
+  display.style.display = 'flex';
+
+  document.getElementById('affectionIcon').textContent = rel.level_icon || '🌱';
+  document.getElementById('affectionLevel').textContent = rel.level || '初识';
+  document.getElementById('affectionValue').textContent = rel.affection || 0;
+
+  // 进度条 - 当前等级的进度
+  let progress = 0;
+  const levels = [
+    {min: 0, max: 10},
+    {min: 11, max: 50},
+    {min: 51, max: 150},
+    {min: 151, max: 500},
+    {min: 501, max: 9999}
+  ];
+  for (const lv of levels) {
+    if (rel.affection >= lv.min && rel.affection <= lv.max) {
+      const range = lv.max - lv.min;
+      progress = ((rel.affection - lv.min) / range) * 100;
+      break;
+    }
+  }
+  document.getElementById('affectionBar').style.width = progress + '%';
+}
+
+function updateAffectionDisplay(affectionData) {
+  if (!affectionData) return;
+  // 用最新数据更新
+  if (currentRelationship) {
+    currentRelationship.affection = affectionData.affection;
+    currentRelationship.level = affectionData.level;
+    currentRelationship.level_en = affectionData.level_en;
+    currentRelationship.level_icon = affectionData.level_icon;
+    currentRelationship.streak_days = affectionData.streak_days;
+    renderAffectionDisplay(currentRelationship);
+  }
+}
+
+function showAffectionToast(change) {
+  const toast = document.getElementById('affectionToast');
+  const sign = change > 0 ? '+' : '';
+  const emoji = change > 0 ? '💕' : '💔';
+  toast.textContent = emoji + ' 好感度 ' + sign + change;
+  toast.style.color = change > 0 ? '#ec4899' : '#dc2626';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+async function showAffectionDetail() {
+  // 重新加载最新数据
+  await loadRelationship();
+  if (!currentRelationship) return;
+
+  const rel = currentRelationship;
+  document.getElementById('detailIcon').textContent = rel.level_icon || '🌱';
+  document.getElementById('detailLevel').textContent = rel.level || '初识';
+  document.getElementById('detailAffection').textContent = rel.affection || 0;
+  document.getElementById('detailMessages').textContent = rel.total_messages || 0;
+  document.getElementById('detailDays').textContent = rel.days_active || 0;
+  document.getElementById('detailStreak').textContent = rel.streak_days || 0;
+
+  if (rel.next_level_at && rel.next_level_at > 0) {
+    const need = rel.next_level_at - rel.affection;
+    document.getElementById('detailProgressLabel').textContent = '距离下一级';
+    document.getElementById('detailProgressValue').textContent = '还差 ' + need;
+
+    // 当前等级的进度
+    const levels = [
+      {min: 0, max: 10},
+      {min: 11, max: 50},
+      {min: 51, max: 150},
+      {min: 151, max: 500}
+    ];
+    let progress = 0;
+    for (const lv of levels) {
+      if (rel.affection >= lv.min && rel.affection <= lv.max) {
+        progress = ((rel.affection - lv.min) / (lv.max - lv.min)) * 100;
+        break;
+      }
+    }
+    document.getElementById('detailProgressFill').style.width = progress + '%';
+  } else {
+    document.getElementById('detailProgressLabel').textContent = '已达最高等级';
+    document.getElementById('detailProgressValue').textContent = '✨ MAX';
+    document.getElementById('detailProgressFill').style.width = '100%';
+  }
+
+  document.getElementById('affectionDetailModal').classList.add('show');
+}
+
+function hideAffectionDetail() {
+  document.getElementById('affectionDetailModal').classList.remove('show');
+}
+
+function showLevelUp(levelUp) {
+  if (!levelUp) return;
+  const icons = {
+    "familiar": "💕",
+    "like": "💗",
+    "love": "💖",
+    "deeplove": "💞"
+  };
+  const titles = {
+    "familiar": "关系升级!",
+    "like": "你们更亲近了!",
+    "love": "Hiyori 心动了!",
+    "deeplove": "至高之爱!"
+  };
+  document.getElementById('levelUpIcon').textContent = icons[levelUp.to] || '💕';
+  document.getElementById('levelUpTitle').textContent = titles[levelUp.to] || '关系升级!';
+  document.getElementById('levelUpMessage').textContent = levelUp.message;
+  document.getElementById('levelUpModal').classList.add('show');
+}
+
+function hideLevelUp() {
+  document.getElementById('levelUpModal').classList.remove('show');
+  // 重新加载关系数据
+  loadRelationship();
+}
+
+// ============ 用户认证函数 ============
+
+function switchAuthTab(tab) {
+  document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+  document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+  document.getElementById('loginForm').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('loginMsg').style.display = 'none';
+  document.getElementById('registerMsg').style.display = 'none';
+}
+
+function showAuthMsg(formId, msg, type) {
+  const el = document.getElementById(formId);
+  el.textContent = msg;
+  el.className = 'auth-msg ' + type;
+  el.style.display = 'block';
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!username || !password) {
+    showAuthMsg('loginMsg', '请输入用户名和密码', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = '登录中...';
+
+  try {
+    const response = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      showAuthMsg('loginMsg', data.detail || '登录失败', 'error');
+      return;
+    }
+
+    // 保存
+    authToken = data.access_token;
+    currentUser = {
+      user_id: data.user_id,
+      username: data.username,
+      nickname: data.nickname
+    };
+    localStorage.setItem('authToken', authToken);
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    showAuthMsg('loginMsg', '登录成功! 正在跳转...', 'success');
+
+    setTimeout(() => location.reload(), 500);
+
+  } catch (e) {
+    showAuthMsg('loginMsg', '网络错误,请重试', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '登录';
+  }
+}
+
+async function doRegister() {
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const nickname = document.getElementById('regNickname').value.trim();
+
+  if (!username || !password) {
+    showAuthMsg('registerMsg', '用户名和密码不能为空', 'error');
+    return;
+  }
+
+  if (username.length < 3 || username.length > 20) {
+    showAuthMsg('registerMsg', '用户名长度需 3-20 字符', 'error');
+    return;
+  }
+
+  if (password.length < 6) {
+    showAuthMsg('registerMsg', '密码至少 6 个字符', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('registerBtn');
+  btn.disabled = true;
+  btn.textContent = '注册中...';
+
+  try {
+    const response = await fetch(`${API}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, nickname: nickname || null })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      showAuthMsg('registerMsg', data.detail || '注册失败', 'error');
+      return;
+    }
+
+    authToken = data.access_token;
+    currentUser = {
+      user_id: data.user_id,
+      username: data.username,
+      nickname: data.nickname
+    };
+    localStorage.setItem('authToken', authToken);
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    showAuthMsg('registerMsg', '注册成功! 正在登录...', 'success');
+
+    setTimeout(() => location.reload(), 500);
+
+  } catch (e) {
+    showAuthMsg('registerMsg', '网络错误,请重试', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '注册';
+  }
+}
+
+function toggleUserMenu() {
+  const menu = document.getElementById('userMenu');
+  if (currentUser) {
+    document.getElementById('userMenuNickname').textContent = currentUser.nickname || currentUser.username;
+    document.getElementById('userMenuUsername').textContent = '@' + currentUser.username;
+  }
+  menu.classList.toggle('open');
+}
+
+// 点击外部关闭菜单
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('userMenu');
+  const btn = document.getElementById('userMenuBtn');
+  if (menu && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+function doLogout() {
+  if (!confirm('确定要退出登录吗?')) return;
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('currentUser');
+  location.reload();
+}
+
+function showChangePassword() {
+  document.getElementById('changePasswordModal').style.display = 'flex';
+  document.getElementById('userMenu').classList.remove('open');
+}
+
+function hideChangePassword() {
+  document.getElementById('changePasswordModal').style.display = 'none';
+  document.getElementById('oldPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  document.getElementById('changePasswordMsg').style.display = 'none';
+}
+
+async function doChangePassword() {
+  const oldPw = document.getElementById('oldPassword').value;
+  const newPw = document.getElementById('newPassword').value;
+  const confirmPw = document.getElementById('confirmPassword').value;
+
+  if (!oldPw || !newPw) {
+    showAuthMsg('changePasswordMsg', '请填写完整', 'error');
+    return;
+  }
+  if (newPw !== confirmPw) {
+    showAuthMsg('changePasswordMsg', '两次新密码不一致', 'error');
+    return;
+  }
+  if (newPw.length < 6) {
+    showAuthMsg('changePasswordMsg', '新密码至少 6 个字符', 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API}/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + authToken
+      },
+      body: JSON.stringify({ old_password: oldPw, new_password: newPw })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      showAuthMsg('changePasswordMsg', data.detail || '修改失败', 'error');
+      return;
+    }
+
+    showAuthMsg('changePasswordMsg', '修改成功!', 'success');
+    setTimeout(() => hideChangePassword(), 1000);
+  } catch (e) {
+    showAuthMsg('changePasswordMsg', '网络错误', 'error');
+  }
+}
+
+// ============ 初始化 (仅在已登录时执行主应用初始化) ============
+
+if (authToken && currentUser) {
+  loadSettings();
+  loadVoices();
+  connectWS();
+  setupMainBtn();
+  setTimeout(initLive2D, 500);
+  // 加载好感度
+  loadRelationship();
+
+  // 自动开启唤醒词监听
+setTimeout(async () => {
+  console.log('尝试自动开启唤醒词监听...');
+
+  // 先请求麦克风权限(只触发一次提示)
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // 立刻关闭这个流,我们只是为了获取权限
+    stream.getTracks().forEach(track => track.stop());
+    console.log('麦克风权限已获取');
+
+    // 开启唤醒词监听
+    if (!wakeWordEnabled) {
+      toggleWakeMode();
+      showToast('✨ 自动开启唤醒词,说 "LordKing" 唤醒我');
+    }
+  } catch (err) {
+    console.log('麦克风权限被拒绝:', err.message);
+    showToast('点击右下角 🌸 启用语音功能');
+    // 设置为可点击状态,让用户手动启用
+    const btn = document.getElementById('mainActionBtn');
+    btn.style.pointerEvents = 'auto';
+    btn.style.cursor = 'pointer';
+    btn.onclick = async () => {
+      btn.onclick = null;
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+        s.getTracks().forEach(t => t.stop());
+        toggleWakeMode();
+      } catch (e) {
+        showToast('需要麦克风权限才能使用语音');
+      }
+    };
+  }
+}, 1500);
+} // end if (authToken && currentUser)
 </script>
 
 </body>
