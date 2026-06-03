@@ -3988,9 +3988,8 @@ if (authToken && currentUser) {
     }
   }
 
-  // 自动唤醒词监听 — 调试期间暂时关闭,改成只设置 wakeStatus 提示用户用空格说话
-  // 调好之后把下面这一行的 if(false) 改成 if(true) 就恢复
-  if (false) {
+  // 自动唤醒词监听 — 登录后自动开启
+  if (true) {
     setTimeout(async () => {
       console.log('尝试自动开启唤醒词监听...');
       try {
