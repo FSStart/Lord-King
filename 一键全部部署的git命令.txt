@@ -1,1 +1,4 @@
- ./deploy.sh "改了布局"
+.\deploy.ps1 -Message "修改说明"
+
+改前端执行
+.\deploy.ps1 -Message "fix: 空格语音输入用 interim 兜底" -FrontendOnly
