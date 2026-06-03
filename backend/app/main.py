@@ -652,22 +652,31 @@ async def http_chat(req: ChatRequest, current_user=Depends(get_current_user)):
 
 @app.post("/tts")
 async def text_to_speech(request: TTSRequest):
-    try:
-        import edge_tts
-        communicate = edge_tts.Communicate(
-            text=request.text, voice=request.voice,
-            rate=request.rate, volume=request.volume, pitch=request.pitch
-        )
-        audio_data = io.BytesIO()
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_data.write(chunk["data"])
-        audio_data.seek(0)
-        return Response(content=audio_data.read(), media_type="audio/mpeg",
-                       headers={"Cache-Control": "no-cache"})
-    except Exception as ex:
-        logger.error("TTS failed: " + str(ex))
-        raise HTTPException(status_code=500, detail="TTS failed: " + str(ex))
+    import edge_tts
+    last_ex = None
+    for attempt in range(3):
+        try:
+            communicate = edge_tts.Communicate(
+                text=request.text, voice=request.voice,
+                rate=request.rate, volume=request.volume, pitch=request.pitch
+            )
+            audio_data = io.BytesIO()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data.write(chunk["data"])
+            audio_data.seek(0)
+            content = audio_data.read()
+            if content:
+                return Response(content=content, media_type="audio/mpeg",
+                               headers={"Cache-Control": "no-cache"})
+            last_ex = Exception("No audio received")
+        except Exception as ex:
+            last_ex = ex
+            logger.warning(f"TTS attempt {attempt + 1} failed: {ex}")
+            if attempt < 2:
+                await asyncio.sleep(0.5)
+    logger.error(f"TTS failed after 3 attempts: {last_ex}")
+    raise HTTPException(status_code=500, detail="TTS failed: " + str(last_ex))
 
 
 # ============ 工具调用 ============
