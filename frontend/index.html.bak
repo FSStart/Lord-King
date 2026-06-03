@@ -2,9 +2,6 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lord King</title>
 <link rel="manifest" href="/manifest.json">
@@ -312,20 +309,6 @@ main {
   border-top-right-radius: 4px;
 }
 
-/* 流式打字光标(功能1): Hiyori 正在打字时,气泡末尾闪烁的小竖条 */
-.message.ai[data-streaming="true"] .bubble::after {
-  content: '▋';
-  display: inline-block;
-  margin-left: 1px;
-  color: #ec4899;
-  font-weight: 400;
-  animation: typingBlink 0.9s steps(1) infinite;
-}
-@keyframes typingBlink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
-}
-
 /* 输入区 */
 .chat-input-area {
   padding: 14px 16px;
@@ -478,6 +461,10 @@ main {
 }
 
 /* ============ 主操作按钮(单一) ============ */
+.main-action-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
 .main-action-btn {
   position: fixed;
   bottom: 24px;
@@ -1768,21 +1755,26 @@ input[type="checkbox"] {
         <p id="statusText">初始化中...</p>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <!-- 好感度 -->
-      <div id="affectionDisplay" onclick="showAffectionDetail()" style="display:none;align-items:center;gap:4px;background:rgba(255,255,255,0.7);border:1px solid rgba(236,72,153,0.25);padding:6px 12px;border-radius:18px;height:36px;cursor:pointer;">
-        <span id="affectionIcon" style="font-size:16px;">💕</span>
-        <span id="affectionValue" style="font-size:13px;font-weight:700;color:#ec4899;">0</span>
+    <div class="header-actions">
+      <!-- 好感度(只显示心+数字,无等级文字) -->
+      <div class="affection-pill" id="affectionDisplay" onclick="showAffectionDetail()" style="display:none;" title="点击查看详情">
+        <span class="affection-pill-icon" id="affectionIcon">💕</span>
+        <span class="affection-pill-value" id="affectionValue">0</span>
       </div>
 
-      <!-- 用户名(点击打开设置面板) -->
-      <div onclick="toggleSettings()" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.7);border:1px solid rgba(236,72,153,0.25);padding:4px 14px 4px 4px;border-radius:18px;height:36px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.95)';this.style.borderColor='rgba(236,72,153,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.7)';this.style.borderColor='rgba(236,72,153,0.25)'">
-        <span id="userAvatarLetter" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#f97316);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;">U</span>
-        <span id="userDisplayName" style="font-size:13px;font-weight:600;color:#6b4f5c;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;">加载中</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#ec4899;opacity:0.6;">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
+      <!-- 用户名按钮(点击打开设置面板) -->
+      <div class="user-display" onclick="toggleSettings()" style="cursor:pointer;">
+        <span class="user-avatar" id="userAvatarLetter">U</span>
+        <span class="user-name" id="userDisplayName">加载中</span>
       </div>
+
+      <!-- 设置按钮(单独齿轮) -->
+      <button class="icon-btn" id="settingsBtn" onclick="toggleSettings()" title="设置">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -1798,7 +1790,7 @@ input[type="checkbox"] {
 
       <div class="chat-messages" id="chatMessages">
         <div class="message ai">
-          <div class="bubble">你好呀!我是 Hiyori,你的 Lord King 智能助手 ✨ 直接说 "小婷" 唤醒我,或者打字聊天哦~</div>
+          <div class="bubble">你好呀!我是 Hiyori,你的 Lord King 智能助手 ✨ 直接说 "LordKing" 唤醒我,或者打字聊天哦~</div>
         </div>
       </div>
 
@@ -1857,121 +1849,93 @@ input[type="checkbox"] {
 <div class="btn-tooltip" id="btnTooltip"></div>
 
 <!-- 设置面板 -->
-<div id="settingsPanel" style="position:fixed;top:0;right:-400px;width:380px;max-width:90vw;height:100vh;background:linear-gradient(180deg,rgba(255,243,247,0.97),rgba(255,255,255,0.97));backdrop-filter:blur(20px);transition:right 0.35s cubic-bezier(0.4,0,0.2,1);z-index:50;overflow-y:auto;border-left:1px solid rgba(236,72,153,0.15);box-shadow:-8px 0 32px rgba(236,72,153,0.15);">
+<div class="settings-panel" id="settingsPanel">
+  <h2>
+    设置
+    <button class="btn-icon" onclick="toggleSettings()">✕</button>
+  </h2>
 
-  <!-- 顶部: 标题 + 关闭 -->
-  <div style="padding:24px 24px 16px;display:flex;justify-content:space-between;align-items:center;">
-    <h2 style="font-size:20px;font-weight:700;background:linear-gradient(135deg,#ec4899,#f97316);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:0;">设置</h2>
-    <button onclick="toggleSettings()" style="width:32px;height:32px;border-radius:50%;background:rgba(236,72,153,0.1);border:none;color:#ec4899;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all 0.2s;" onmouseover="this.style.background='rgba(236,72,153,0.2)'" onmouseout="this.style.background='rgba(236,72,153,0.1)'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/>
-        <line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
+  <div class="form-group">
+    <label>唤醒词</label>
+    <input id="wakeWord" type="text" value="lordking">
+    <p class="hint">支持: lordking / lord king / 老大 / 国王陛下</p>
   </div>
 
-  <!-- 账户卡片(最顶部) -->
-  <div style="margin:0 24px 20px;padding:16px;background:linear-gradient(135deg,rgba(236,72,153,0.08),rgba(249,115,22,0.08));border:1px solid rgba(236,72,153,0.2);border-radius:16px;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-      <div id="settingsUserAvatar" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#f97316);display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:700;box-shadow:0 4px 12px rgba(236,72,153,0.3);">U</div>
-      <div style="flex:1;min-width:0;">
-        <div id="settingsUserName" style="font-size:16px;font-weight:700;color:#6b4f5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">用户</div>
-        <div id="settingsUserId" style="font-size:12px;color:#b89aa3;margin-top:2px;">@user</div>
+  <div class="form-group">
+    <label>识别语言</label>
+    <select id="recogLang">
+      <option value="zh-CN">中文(普通话)</option>
+      <option value="en-US">English (US)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>语音引擎</label>
+    <select id="ttsEngine">
+      <option value="edge">Edge TTS · 自然女声(推荐)</option>
+      <option value="browser">浏览器自带</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Edge TTS 声音</label>
+    <select id="edgeVoice">
+      <option value="zh-CN-XiaoxiaoNeural">晓晓 · 温柔甜美</option>
+      <option value="zh-CN-XiaoyiNeural">晓伊 · 活泼可爱</option>
+      <option value="zh-CN-YunxiNeural">云希 · 阳光男生</option>
+      <option value="zh-CN-XiaomengNeural">晓梦 · 知性优雅</option>
+      <option value="zh-CN-XiaohanNeural">晓涵 · 温暖姐姐</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>语速 <span id="speedVal" style="color:#9f7a85">1.0x</span></label>
+    <input id="ttsSpeed" type="range" min="0.5" max="2" step="0.1" value="1"
+           oninput="document.getElementById('speedVal').textContent = this.value + 'x'">
+  </div>
+
+  <div class="checkbox-group">
+    <span>自动播报回复</span>
+    <input id="autoSpeak" type="checkbox" checked>
+  </div>
+
+  <button class="quick-btn" style="width:100%;margin-top:16px;" onclick="testVoice()">🔊 测试语音</button>
+  <button class="quick-btn" style="width:100%;margin-top:8px;color:#dc2626;" onclick="clearAll()">🗑️ 清空历史</button>
+
+  <!-- 账户操作 -->
+  <div class="account-section">
+    <div class="account-header" id="settingsUserInfo">
+      <div class="account-avatar" id="settingsUserAvatar">U</div>
+      <div>
+        <div class="account-name" id="settingsUserName">用户</div>
+        <div class="account-id" id="settingsUserId">@user</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="showChangePassword()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:rgba(255,255,255,0.7);border:1px solid rgba(236,72,153,0.2);border-radius:10px;cursor:pointer;color:#6b4f5c;font-size:12px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,1)';this.style.borderColor='rgba(236,72,153,0.4)';this.style.color='#ec4899'" onmouseout="this.style.background='rgba(255,255,255,0.7)';this.style.borderColor='rgba(236,72,153,0.2)';this.style.color='#6b4f5c'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-        修改密码
-      </button>
-      <button onclick="doLogout()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:rgba(255,255,255,0.7);border:1px solid rgba(220,38,38,0.2);border-radius:10px;cursor:pointer;color:#dc2626;font-size:12px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='rgba(220,38,38,0.08)';this.style.borderColor='rgba(220,38,38,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.7)';this.style.borderColor='rgba(220,38,38,0.2)'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-        退出登录
-      </button>
-    </div>
-  </div>
-
-  <!-- 语音设置区 -->
-  <div style="padding:0 24px;">
-    <div style="font-size:13px;font-weight:700;color:#9f7a85;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(236,72,153,0.1);">🎙️ 语音设置</div>
-
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:13px;color:#6b4f5c;margin-bottom:6px;font-weight:600;">唤醒词</label>
-      <input id="wakeWord" type="text" value="小婷" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.8);border:1px solid rgba(236,72,153,0.2);border-radius:10px;color:#4a3f4d;font-size:14px;outline:none;box-sizing:border-box;">
-      <p style="font-size:11px;color:#b89aa3;margin-top:4px;">支持: 小婷 / 老大 / 主人 / 陛下</p>
-    </div>
-
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:13px;color:#6b4f5c;margin-bottom:6px;font-weight:600;">识别语言</label>
-      <select id="recogLang" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.8);border:1px solid rgba(236,72,153,0.2);border-radius:10px;color:#4a3f4d;font-size:14px;outline:none;box-sizing:border-box;cursor:pointer;">
-        <option value="zh-CN">中文(普通话)</option>
-        <option value="en-US">English (US)</option>
-      </select>
-    </div>
-
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:13px;color:#6b4f5c;margin-bottom:6px;font-weight:600;">语音引擎</label>
-      <select id="ttsEngine" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.8);border:1px solid rgba(236,72,153,0.2);border-radius:10px;color:#4a3f4d;font-size:14px;outline:none;box-sizing:border-box;cursor:pointer;">
-        <option value="browser">浏览器自带(推荐)</option>
-        <option value="edge">Edge TTS · 自然女声</option>
-      </select>
-    </div>
-
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:13px;color:#6b4f5c;margin-bottom:6px;font-weight:600;">Edge TTS 声音</label>
-      <select id="edgeVoice" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.8);border:1px solid rgba(236,72,153,0.2);border-radius:10px;color:#4a3f4d;font-size:14px;outline:none;box-sizing:border-box;cursor:pointer;">
-        <option value="zh-CN-XiaohanNeural">晓涵 · 温暖姐姐</option>
-        <option value="zh-CN-XiaoxiaoNeural">晓晓 · 温柔甜美</option>
-        <option value="zh-CN-XiaoyiNeural">晓伊 · 活泼可爱</option>
-        <option value="zh-CN-XiaomengNeural">晓梦 · 知性优雅</option>
-        <option value="zh-CN-YunxiNeural">云希 · 阳光男生</option>
-      </select>
-    </div>
-
-    <div style="margin-bottom:14px;">
-      <label style="display:flex;justify-content:space-between;font-size:13px;color:#6b4f5c;margin-bottom:6px;font-weight:600;">
-        <span>语速</span>
-        <span id="speedVal" style="color:#ec4899;font-weight:700;">1.0x</span>
-      </label>
-      <input id="ttsSpeed" type="range" min="0.5" max="2" step="0.1" value="1" style="width:100%;accent-color:#ec4899;" oninput="document.getElementById('speedVal').textContent = this.value + 'x'">
-    </div>
-
-    <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(255,255,255,0.6);border:1px solid rgba(236,72,153,0.15);border-radius:10px;cursor:pointer;margin-bottom:18px;">
-      <span style="font-size:13px;color:#6b4f5c;font-weight:600;">语音输入自动播报</span>
-      <input id="autoSpeak" type="checkbox" checked style="accent-color:#ec4899;width:18px;height:18px;cursor:pointer;">
-    </label>
-  </div>
-
-  <!-- 操作区 -->
-  <div style="padding:0 24px;">
-    <div style="font-size:13px;font-weight:700;color:#9f7a85;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(236,72,153,0.1);">⚙️ 操作</div>
-
-    <button onclick="testVoice()" style="width:100%;padding:12px;background:rgba(255,255,255,0.7);border:1px solid rgba(236,72,153,0.2);border-radius:10px;cursor:pointer;color:#6b4f5c;font-size:13px;font-weight:600;margin-bottom:8px;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='rgba(236,72,153,0.08)';this.style.color='#ec4899'" onmouseout="this.style.background='rgba(255,255,255,0.7)';this.style.color='#6b4f5c'">
-      🔊 测试语音
+    <button class="account-btn" onclick="showChangePassword()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      修改密码
     </button>
-
-    <button onclick="clearAll()" style="width:100%;padding:12px;background:rgba(255,255,255,0.7);border:1px solid rgba(220,38,38,0.2);border-radius:10px;cursor:pointer;color:#dc2626;font-size:13px;font-weight:600;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='rgba(220,38,38,0.08)';this.style.borderColor='rgba(220,38,38,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.7)';this.style.borderColor='rgba(220,38,38,0.2)'">
-      🗑️ 清空历史
+    <button class="account-btn danger" onclick="doLogout()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      退出登录
     </button>
   </div>
 
-  <!-- 使用说明 -->
-  <div style="margin:20px 24px 30px;padding:14px 16px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:12px;font-size:12px;color:#9f7a85;line-height:1.7;">
-    <div style="font-weight:700;color:#d97706;margin-bottom:6px;">💡 使用提示</div>
-    <div>• 自动监听唤醒词</div>
-    <div>• 说 "<span style="color:#ec4899;font-weight:600;">小婷</span>" 直接唤醒</div>
-    <div>• "<span style="color:#ec4899;font-weight:600;">小婷,今天天气</span>" 一句话直达</div>
-    <div>• 文字输入也可以聊天</div>
-    <div>• 空格键快速说话</div>
+  <div style="margin-top:20px;padding-top:14px;border-top:1px solid rgba(236,72,153,0.1);font-size:12px;color:#9f7a85;line-height:1.8;">
+    <p>💡 <strong>使用说明:</strong></p>
+    <p>• ✨ 自动监听唤醒词</p>
+    <p>• 说 "LordKing" 唤醒我</p>
+    <p>• 或 "LordKing + 命令" 一句话直达</p>
+    <p>• 也可以直接在输入框打字</p>
+    <p>• 空格键也能快速说话</p>
   </div>
-
 </div>
 
 <div class="toast" id="toast"></div>
@@ -2069,6 +2033,12 @@ input[type="checkbox"] {
 
 <!-- Live2D SDK + PixiJS -->
 <!-- Live2D SDK + PixiJS - 注意加载顺序 -->
+<script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+
 <script>
 // ============ 配置 ============
 const API = window.location.protocol + '//' + window.location.host;
@@ -2124,48 +2094,11 @@ let wakeWordEnabled = false;
 let isProcessing = false;
 let currentUtterance = null;
 let aiResponseBuffer = '';
-let emotionAppliedThisRound = false;  // 本轮回复是否已触发过情绪表情
 let live2dModel = null;
 let pixiApp = null;
 let currentAudio = null;
 let pressTimer = null;
 let pressStartTime = 0;
-
-// ===== 唇形同步 =====
-let mouthOpenValue = 0;          // 每帧驱动 Live2D 嘴部参数,范围 0~1
-let lipsyncAnalyser = null;      // Web Audio Analyser 节点
-let lipsyncRAF = null;           // requestAnimationFrame id
-let lipsyncFakeTimer = null;     // 浏览器 TTS 没法读音量,用定时器模拟
-let audioCtx = null;             // 全局共享 AudioContext
-
-// 调试入口: F12 输入 testLipsync() 让嘴动 3 秒,验证模型支不支持
-window.testLipsync = function(duration = 3000) {
-  console.log('[唇形测试] 开始模拟嘴动', duration, 'ms');
-  stopLipSync();
-  let phase = 0;
-  lipsyncFakeTimer = setInterval(() => {
-    phase += 0.4;
-    mouthOpenValue = 0.5 + Math.sin(phase) * 0.4;
-    mouthOpenValue = Math.max(0, Math.min(1, mouthOpenValue));
-  }, 60);
-  setTimeout(() => {
-    stopLipSync();
-    console.log('[唇形测试] 结束');
-  }, duration);
-};
-// F12 输入 window.mouthOpenValue 可以实时看当前嘴部参数值
-
-// ===== 情绪 → Live2D 表情/动作映射 =====
-// AI 回复开头会带 [emotion:xxx],这里映射到表情下标和动作组
-const EMOTION_MAP = {
-  happy:     { expression: 0, motion: 'Tap' },    // F01 + tap 动作
-  shy:       { expression: 5, motion: 'Idle' },   // F06 害羞
-  sad:       { expression: 2, motion: 'Idle' },   // F03 难过
-  angry:     { expression: 4, motion: 'Tap' },    // F05 生气
-  surprised: { expression: 1, motion: 'Tap' },    // F02 惊讶
-  love:      { expression: 7, motion: 'Tap' },    // F08 心动
-  neutral:   { expression: null, motion: 'Idle' }
-};
 
 // ============ 樱花效果 ============
 function createSakura() {
@@ -2185,25 +2118,33 @@ createSakura();
 // ============ Live2D 初始化(多个备选源) ============
 // 这些都是 Cubism 2 格式的模型(.model.json),JK 风格,确认可用
 const LIVE2D_MODELS = [
-  // 模型 1: Hiyori - 本地(Cubism 3)
-  '/models/hiyori/model.json',
-  // 模型 2: Haru - 本地(Cubism 3)
-  '/models/haru/haru_greeter_t03.model3.json',
+  // 模型 1: Hiyori - JK 风蓝发女孩(主推荐)
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/hiyori/model.json',
+  // 模型 2: Sagiri - 银发萝莉
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/sagiri/model.json',
+  // 模型 3: Miku - 初音未来
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/miku/model.json',
+  // 模型 4: Koharu - 兔耳女孩
+  'https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/koharu/model.json',
 ];
 
 let currentModelIdx = 0;
 
-// 确保 Cubism Core + PIXI.live2d 都加载完成
+// 确保 Cubism Core 加载完成
 function waitForCubism() {
   return new Promise((resolve) => {
-    const ready = () => window.Live2DCubismCore && window.PIXI && PIXI.live2d && PIXI.live2d.Live2DModel;
-    if (ready()) { resolve(); return; }
+    if (window.Live2DCubismCore) {
+      resolve();
+      return;
+    }
     const check = setInterval(() => {
-      if (ready()) { clearInterval(check); resolve(); }
-    }, 200);
-    // 移动端10秒超时，桌面端20秒
-    const timeout = window.innerWidth <= 768 ? 10000 : 20000;
-    setTimeout(() => { clearInterval(check); resolve(); }, timeout);
+      if (window.Live2DCubismCore) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 100);
+    // 最多等 10 秒
+    setTimeout(() => { clearInterval(check); resolve(); }, 10000);
   });
 }
 
@@ -2219,10 +2160,10 @@ async function initLive2D() {
   // 等待 Cubism Core 加载
   await waitForCubism();
 
-  if (!window.Live2DCubismCore || !window.PIXI || !PIXI.live2d) {
+  if (!window.Live2DCubismCore) {
     document.getElementById('live2dPlaceholder').innerHTML = `
       <div class="emoji">😢</div>
-      <div>Live2D 组件加载失败</div>
+      <div>Cubism Core 加载失败</div>
       <div style="font-size:11px;margin-top:6px;color:#c9a8b1">CDN 网络问题</div>
       <button class="quick-btn" style="margin-top:12px;font-size:12px;" onclick="location.reload()">🔄 刷新页面</button>
     `;
@@ -2279,38 +2220,6 @@ async function initLive2D() {
       live2dModel = await Promise.race([modelPromise, timeoutPromise]);
 
       pixiApp.stage.addChild(live2dModel);
-
-      // 唇形同步 - hook 进模型内部 update,让 motion 跑完之后再写嘴部参数
-      // 单纯 pixi.ticker.add 会被 motion 的后续 update 覆盖掉,所以必须 monkey-patch
-      try {
-        const im = live2dModel.internalModel;
-        if (im && im.update && !im._lipsyncPatched) {
-          const origUpdate = im.update.bind(im);
-          im.update = function(dt, now) {
-            const r = origUpdate(dt, now);
-            try {
-              if (this.coreModel && this.coreModel.setParameterValueById) {
-                this.coreModel.setParameterValueById('ParamMouthOpenY', mouthOpenValue);
-                // 部分模型还认 ParamMouthOpen 这个 id,双写保险
-                this.coreModel.setParameterValueById('ParamMouthOpen', mouthOpenValue);
-              }
-            } catch (e) {}
-            return r;
-          };
-          im._lipsyncPatched = true;
-          console.log('[唇形同步] internalModel.update 已 hook');
-        }
-      } catch (e) {
-        console.warn('[唇形同步] hook 失败,降级到 ticker:', e.message);
-        pixiApp.ticker.add(() => {
-          try {
-            const core = live2dModel.internalModel.coreModel;
-            if (core && core.setParameterValueById) {
-              core.setParameterValueById('ParamMouthOpenY', mouthOpenValue);
-            }
-          } catch (e) {}
-        });
-      }
 
       const scale = Math.min(rect.width / live2dModel.width, rect.height / live2dModel.height) * 0.9;
       live2dModel.scale.set(scale);
@@ -2405,37 +2314,14 @@ if (synth.onvoiceschanged !== undefined) {
 }
 
 // ============ WebSocket ============
-let chatMode = 'ws'; // 'ws' | 'http'
-let wsConnectTimer = null;
-
 function connectWS() {
-  if (!authToken) return;
-
-  // 5 秒内未连上则自动切 HTTP 模式
-  wsConnectTimer = setTimeout(() => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.warn('WS 5秒未连上，切换 HTTP 模式');
-      chatMode = 'http';
-      document.getElementById('connDot').className = 'dot connected';
-      document.getElementById('connText').textContent = 'HTTP';
-      setStatus('就绪');
-    }
-  }, 5000);
-
-  try {
-    ws = new WebSocket(`${WS_URL}/ws/${authToken}`);
-  } catch(e) {
-    clearTimeout(wsConnectTimer);
-    chatMode = 'http';
-    document.getElementById('connDot').className = 'dot connected';
-    document.getElementById('connText').textContent = 'HTTP';
-    setStatus('就绪');
+  if (!authToken) {
+    console.log('未登录,跳过 WS 连接');
     return;
   }
+  ws = new WebSocket(`${WS_URL}/ws/${authToken}`);
 
   ws.onopen = () => {
-    clearTimeout(wsConnectTimer);
-    chatMode = 'ws';
     document.getElementById('connDot').className = 'dot connected';
     document.getElementById('connText').textContent = '已连接';
     setStatus('就绪');
@@ -2447,24 +2333,12 @@ function connectWS() {
   };
 
   ws.onclose = () => {
-    clearTimeout(wsConnectTimer);
-    // WS 断开后立即切 HTTP 模式保证可用，后台继续重连
-    if (chatMode !== 'http') {
-      chatMode = 'http';
-      document.getElementById('connDot').className = 'dot disconnected';
-      document.getElementById('connText').textContent = 'HTTP(重连中)';
-      setStatus('就绪');
-    }
+    document.getElementById('connDot').className = 'dot disconnected';
+    document.getElementById('connText').textContent = '断开';
     setTimeout(connectWS, 3000);
   };
 
-  ws.onerror = () => {
-    // 确保 error 后也能用
-    if (chatMode !== 'http') {
-      chatMode = 'http';
-      setStatus('就绪');
-    }
-  };
+  ws.onerror = (e) => console.error('WebSocket error:', e);
 }
 
 function handleWSMessage(data) {
@@ -2474,23 +2348,11 @@ function handleWSMessage(data) {
     triggerMotion('idle');
   } else if (data.type === 'chunk') {
     aiResponseBuffer += data.content;
-    const { emotion, text } = parseEmotionTag(aiResponseBuffer);
-    // 拿到完整情绪标签的瞬间就立刻触发表情,不等 done
-    if (emotion && !emotionAppliedThisRound) {
-      emotionAppliedThisRound = true;
-      applyEmotion(emotion);
-    }
-    updateLastAIMessage(text);
+    updateLastAIMessage(aiResponseBuffer);
   } else if (data.type === 'done') {
-    const rawFull = data.full_response || aiResponseBuffer;
-    // 解析情绪标签 → 触发表情/动作 + 拿到干净文本
-    const { emotion, text: fullResponse } = parseEmotionTag(rawFull);
-    if (emotion) applyEmotion(emotion);
-
+    const fullResponse = data.full_response || aiResponseBuffer;
     if (!aiResponseBuffer) {
       addMessage('ai', fullResponse);
-    } else {
-      updateLastAIMessage(fullResponse);
     }
     // 处理好感度变化
     if (data.affection) {
@@ -2500,6 +2362,9 @@ function handleWSMessage(data) {
       }
     }
     // 判断是否需要播报
+    // 1. 语音输入 → 自动播报
+    // 2. 文字输入 → 不播报
+    // 3. 用户说"读一下/播放/念一下" → 强制播报
     const forceSpeak = /读(一下|出来)?|播(放|报)|念(一下|给我)?|说(出来|一遍)/.test(
       ws._lastMessage || ''
     );
@@ -2511,11 +2376,10 @@ function handleWSMessage(data) {
     } else {
       setState(STATES.IDLE);
       isProcessing = false;
+      // 文字输入时也显示角色气泡
       showCharacterText(fullResponse.length > 50 ? fullResponse.slice(0, 50) + '...' : fullResponse);
     }
     aiResponseBuffer = '';
-    emotionAppliedThisRound = false;
-    if (typeof resetIdleTimer === 'function') resetIdleTimer();  // 对话后重置空闲计时
   } else if (data.type === 'level_up') {
     showLevelUp(data.level_up);
   } else if (data.type === 'error') {
@@ -2523,7 +2387,6 @@ function handleWSMessage(data) {
     setState(STATES.IDLE);
     isProcessing = false;
     aiResponseBuffer = '';
-    emotionAppliedThisRound = false;
   }
 }
 
@@ -2552,7 +2415,7 @@ function updateMainBtnAppearance() {
   } else if (wakeWordEnabled) {
     btn.classList.add('wake-mode');
     btn.textContent = '✨';
-    labelText = '说 "小婷" 唤醒';
+    labelText = '说 "LordKing" 唤醒';
   } else {
     btn.classList.add('error');
     btn.textContent = '🌸';
@@ -2751,9 +2614,9 @@ function toggleWakeMode() {
   wakeWordEnabled = !wakeWordEnabled;
 
   if (wakeWordEnabled) {
-    document.getElementById('wakeStatus').textContent = '✨ 监听中 · 说 "小婷" 唤醒';
+    document.getElementById('wakeStatus').textContent = '✨ 监听中 · 说 "LordKing" 唤醒';
     startWakeListening();
-    showCharacterText('在听你呼唤呢~ 说 "小婷" 唤醒我吧');
+    showCharacterText('在听你呼唤呢~ 说 "LordKing" 唤醒我吧');
   } else {
     document.getElementById('wakeStatus').textContent = '语音已关闭 · 可使用键盘输入';
     stopWakeListening();
@@ -2765,65 +2628,47 @@ function toggleWakeMode() {
 
 function startWakeListening() {
   if (!checkBrowserSupport()) return;
-  if (!wakeWordEnabled) return;
-
-  // 清理旧实例
-  if (wakeRecognition) {
-    const old = wakeRecognition;
-    wakeRecognition = null;
-    old.onresult = null;
-    old.onerror = null;
-    old.onend = null;
-    try { old.abort(); } catch(e) {}
-  }
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SR();
-  // 用 non-continuous 模式，更稳定，每次识别完自动重启
-  rec.continuous = false;
-  rec.interimResults = true;  // 需要 interim 才能可靠拿到结果
-  rec.lang = document.getElementById('recogLang')?.value || 'zh-CN';
-  rec.maxAlternatives = 5;
-  wakeRecognition = rec;
+  wakeRecognition = new SR();
+  wakeRecognition.continuous = true;
+  wakeRecognition.interimResults = true;
+  wakeRecognition.lang = 'zh-CN';
 
   const wakeWord = document.getElementById('wakeWord').value.toLowerCase().trim();
   const aliases = [
-    wakeWord, '小婷', '小庭', '小廷', '小挺', '小停',
-    '小丁', '小町', '晓婷', '晓亭',
-    'xiaoting', 'xiao ting',
-    '老大', '主人', '陛下',
+    // 标准
+    wakeWord, 'lordking', 'lord king', 'lord-king',
+    'hey lord', 'hi lord', 'hello lord',
+    // 中文别名
+    '老大', '国王', '陛下', '主人',
+    // 中文识别"Lord King"常出现的错误识别
+    '罗德金', '罗德京', '罗的金', '老德金', '洛德金',
+    '落地金', '落得近', '鲁迪金', '楼德金', '路得金',
+    '老的金', '罗大', '罗的', '罗德',
+    // 部分匹配(只识别到一半)
+    'lord', '罗德',
   ];
 
-  let wakeHandled = false;  // 防止 interim+final 重复触发
+  // 调试: 打印识别结果(方便用户看到 zh 识别成什么)
+  console.log("唤醒词监听已启动 候选词:", aliases.slice(0, 8));
 
-  rec.onresult = (event) => {
-    if (wakeHandled) return;
-    // 收集所有候选结果
-    let allTranscripts = [];
-    for (let r = 0; r < event.results.length; r++) {
-      for (let a = 0; a < event.results[r].length; a++) {
-        allTranscripts.push(event.results[r][a].transcript.toLowerCase().trim());
-      }
-    }
-    const transcript = allTranscripts[0] || '';
-    const isFinal = event.results[event.results.length - 1]?.isFinal;
-    console.log("✓ 识别到:", transcript, isFinal ? "[最终]" : "[临时]", "候选:", allTranscripts.slice(1, 4));
+  wakeRecognition.onresult = (event) => {
+    const result = event.results[event.results.length - 1];
+    const transcript = result[0].transcript.toLowerCase().trim();
 
-    // 检查是否包含唤醒词
-    let matchedAlias = null;
-    let matchedTranscript = transcript;
-    for (const t of allTranscripts) {
-      matchedAlias = aliases.find(a => t.includes(a));
-      if (matchedAlias) { matchedTranscript = t; break; }
-    }
+    // 调试: 显示识别到的内容
+    console.log("识别中:", transcript, result.isFinal ? "[最终]" : "[临时]");
 
-    if (matchedAlias && !isProcessing && !wakeHandled) {
-      wakeHandled = true;
+    const matchedAlias = aliases.find(a => transcript.includes(a));
+
+    if (matchedAlias && !isProcessing) {
       // 提取唤醒词后面的内容
-      let command = matchedTranscript;
-      const idx = matchedTranscript.indexOf(matchedAlias);
+      let command = transcript;
+      const idx = transcript.indexOf(matchedAlias);
       if (idx !== -1) {
-        command = matchedTranscript.substring(idx + matchedAlias.length).trim();
+        command = transcript.substring(idx + matchedAlias.length).trim();
+        // 去掉开头的标点
         command = command.replace(/^[,，。.\s!！?？:：]+/, '').trim();
       }
 
@@ -2831,9 +2676,10 @@ function startWakeListening() {
       playBeep();
 
       if (command && command.length >= 2) {
+        // 模式 1: 唤醒词 + 命令 → 直接发送
         showToast('✨ ' + command);
         showCharacterText('好的~ 主人说: ' + command);
-        lastInputWasVoice = true;
+        lastInputWasVoice = true;  // 标记为语音输入(自动播报)
         addMessage('user', command);
         setTimeout(() => {
           if (ws && ws.readyState === WebSocket.OPEN) {
@@ -2847,72 +2693,36 @@ function startWakeListening() {
           }
         }, 300);
       } else {
+        // 模式 2: 只说唤醒词 → 进入录音模式
         showToast('✨ 已唤醒,请说话');
         showCharacterText('诶? 主人叫我吗?');
         setTimeout(startListening, 300);
       }
     }
-    // 没匹配到唤醒词 → onend 会触发重启
   };
 
-  rec.onerror = (e) => {
-    // no-speech 是正常的（没人说话），静默重启
-    if (e.error === 'no-speech') return;  // onend 会处理重启
-    if (e.error === 'not-allowed') {
-      console.error("麦克风权限被拒绝");
-      return;
+  wakeRecognition.onerror = (e) => {
+    if (e.error === 'no-speech' || e.error === 'audio-capture') {
+      setTimeout(() => { if (wakeWordEnabled) startWakeListening(); }, 1000);
     }
-    console.log("唤醒词 onerror:", e.error);
-    // 其他错误也让 onend 处理重启
   };
 
-  rec.onend = () => {
-    // non-continuous 模式每次识别完都会触发 onend，自动重启
-    if (wakeRecognition === rec && wakeWordEnabled && !isProcessing) {
-      // 短延迟后重启，避免占满 CPU
-      setTimeout(() => {
-        if (wakeWordEnabled && !isProcessing) startWakeListening();
-      }, 300);
+  wakeRecognition.onend = () => {
+    if (wakeWordEnabled && currentState === STATES.WAKE_LISTENING) {
+      setTimeout(() => { if (wakeWordEnabled) startWakeListening(); }, 100);
     }
   };
 
   try {
-    rec.start();
+    wakeRecognition.start();
     setState(STATES.WAKE_LISTENING);
   } catch (e) {
-    console.error("唤醒词启动失败:", e.message);
-    // 延迟重试
-    setTimeout(() => {
-      if (wakeWordEnabled) startWakeListening();
-    }, 2000);
+    console.error(e);
   }
-}
-
-// 节流: 防止疯狂重启
-let wakeStartTimer = null;
-function scheduleWakeRestart(delay) {
-  if (wakeStartTimer) clearTimeout(wakeStartTimer);
-  wakeStartTimer = setTimeout(() => {
-    wakeStartTimer = null;
-    if (wakeWordEnabled && !isProcessing) {
-      startWakeListening();
-    }
-  }, delay);
 }
 
 function stopWakeListening() {
-  if (wakeStartTimer) {
-    clearTimeout(wakeStartTimer);
-    wakeStartTimer = null;
-  }
-  if (wakeRecognition) {
-    const old = wakeRecognition;
-    wakeRecognition = null;
-    old.onresult = null;
-    old.onerror = null;
-    old.onend = null;
-    try { old.abort(); } catch (e) {}
-  }
+  if (wakeRecognition) try { wakeRecognition.stop(); } catch (e) {}
 }
 
 // ============ 发送到 AI ============
@@ -2921,167 +2731,18 @@ function sendToAI(text) {
   isProcessing = true;
   addMessage('user', text);
 
-  if (chatMode === 'http') {
-    sendViaHTTP(text);
-  } else if (ws && ws.readyState === WebSocket.OPEN) {
-    ws._lastMessage = text;
-    ws.send(JSON.stringify({ message: text }));
-  } else {
-    // WS 未就绪，直接用 HTTP
-    sendViaHTTP(text);
-  }
-}
-
-async function sendViaHTTP(text) {
-  try {
-    const response = await fetch(`${API}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-      body: JSON.stringify({ message: text, user_id: userId })
-    });
-    const data = await response.json();
-    const rawReply = data.response || data.message || '抱歉，暂时无法回复';
-    const { emotion, text: reply } = parseEmotionTag(rawReply);
-    if (emotion) applyEmotion(emotion);
-    addMessage('ai', reply);
-    setState(STATES.IDLE);
-    isProcessing = false;
-    const autoSpeak = document.getElementById('autoSpeak') ? document.getElementById('autoSpeak').value : 'voice';
-    if (autoSpeak === 'always' || (autoSpeak === 'voice' && lastInputWasVoice)) speak(reply);
-  } catch (e) {
-    addMessage('ai', '网络连接失败，请稍后重试');
-    isProcessing = false;
-    setState(STATES.IDLE);
-  }
-}
-
-// ============ 唇形同步辅助 ============
-
-function ensureAudioCtx() {
-  if (!audioCtx) {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (Ctx) audioCtx = new Ctx();
-  }
-  return audioCtx;
-}
-
-// 从 <audio> 元素取实时音量驱动嘴部(Edge TTS 用)
-function startLipSyncFromAudio(audioEl) {
-  stopLipSync();
-  const ctx = ensureAudioCtx();
-  if (!ctx) {
-    console.warn('[lipsync] AudioContext 不可用,降级到模拟');
-    startLipSyncFake();
-    return;
-  }
-  try {
-    if (ctx.state === 'suspended') ctx.resume();
-    const source = ctx.createMediaElementSource(audioEl);
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    source.connect(analyser);
-    analyser.connect(ctx.destination);
-    lipsyncAnalyser = analyser;
-
-    const dataArr = new Uint8Array(analyser.frequencyBinCount);
-    const tick = () => {
-      if (!lipsyncAnalyser) return;
-      analyser.getByteFrequencyData(dataArr);
-      // 取低频段(说话主要在 200-2000Hz)的均值
-      let sum = 0;
-      const N = Math.min(dataArr.length, 32);
-      for (let i = 2; i < N; i++) sum += dataArr[i];
-      const avg = sum / (N - 2) / 255;  // 归一化 0~1
-      // 放大 + 平滑
-      const target = Math.min(1, avg * 2.2);
-      mouthOpenValue = mouthOpenValue * 0.5 + target * 0.5;
-      lipsyncRAF = requestAnimationFrame(tick);
-    };
-    tick();
-  } catch (e) {
-    console.warn('[lipsync] 真实音量取失败,降级:', e.message);
-    startLipSyncFake();
-  }
-}
-
-// 浏览器 TTS 用的模拟嘴动(没法读音频,用随机波形)
-function startLipSyncFake() {
-  stopLipSync();
-  let phase = 0;
-  lipsyncFakeTimer = setInterval(() => {
-    phase += 0.4 + Math.random() * 0.3;
-    // 正弦 + 随机扰动,模拟说话
-    mouthOpenValue = 0.5 + Math.sin(phase) * 0.35 + (Math.random() - 0.5) * 0.2;
-    mouthOpenValue = Math.max(0, Math.min(1, mouthOpenValue));
-  }, 60);
-}
-
-function stopLipSync() {
-  if (lipsyncRAF) { cancelAnimationFrame(lipsyncRAF); lipsyncRAF = null; }
-  if (lipsyncFakeTimer) { clearInterval(lipsyncFakeTimer); lipsyncFakeTimer = null; }
-  if (lipsyncAnalyser) {
-    try { lipsyncAnalyser.disconnect(); } catch(e) {}
-    lipsyncAnalyser = null;
-  }
-  // 嘴慢慢闭上
-  const fadeStart = mouthOpenValue;
-  let t = 0;
-  const fade = setInterval(() => {
-    t += 0.1;
-    mouthOpenValue = fadeStart * (1 - t);
-    if (t >= 1) {
-      mouthOpenValue = 0;
-      clearInterval(fade);
+  setTimeout(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws._lastMessage = text;  // 保存最后一条消息用于判断是否要求播报
+      ws.send(JSON.stringify({
+        message: text
+      }));
+    } else {
+      addMessage('ai', '连接已断开,请稍候...');
+      isProcessing = false;
+      setState(STATES.IDLE);
     }
-  }, 30);
-}
-
-// ============ 情绪 → 表情/动作 ============
-// 情绪 → 语音参数(rate 相对叠加在用户基础语速上, pitch 绝对音调)
-// 让 Hiyori 开心时声音活泼上扬, 难过时放慢压低, 害羞时轻柔
-const EMOTION_VOICE = {
-  happy:     { rate: 12,  pitch: 22 },
-  shy:       { rate: -4,  pitch: 12 },
-  sad:       { rate: -12, pitch: -16 },
-  angry:     { rate: 8,   pitch: 6 },
-  surprised: { rate: 15,  pitch: 28 },
-  love:      { rate: -2,  pitch: 16 },
-  neutral:   { rate: 0,   pitch: 0 }
-};
-let currentEmotion = 'neutral';  // 最近一次回复的情绪, 供 TTS 调整音色
-
-function applyEmotion(emotion) {
-  if (emotion) currentEmotion = emotion;  // 先记录情绪(即便 Live2D 没加载, TTS 也要用)
-  if (!live2dModel || !emotion) return;
-  const cfg = EMOTION_MAP[emotion] || EMOTION_MAP.neutral;
-  console.log('[情绪]', emotion, cfg);
-  try {
-    if (cfg.expression !== null && live2dModel.expression) {
-      live2dModel.expression(cfg.expression);
-    }
-    if (cfg.motion && live2dModel.motion) {
-      live2dModel.motion(cfg.motion);
-    }
-  } catch (e) {
-    console.warn('[情绪] 应用失败:', e.message);
-  }
-}
-
-// 从 AI 回复里抽出 [emotion:xxx] 标签,返回 { emotion, text }
-// 流式输入时,如果标签还没收完,返回 text='' 隐藏起来,避免 "[emot" 漏出
-function parseEmotionTag(raw) {
-  if (!raw) return { emotion: null, text: raw };
-  // 完整标签
-  const m = raw.match(/^\s*\[emotion:([a-z]+)\]\s*/i);
-  if (m) {
-    return { emotion: m[1].toLowerCase(), text: raw.slice(m[0].length) };
-  }
-  // 部分标签(流式还没收完):隐藏
-  if (/^\s*\[(e(m(o(t(i(o(n(:[a-z]*)?)?)?)?)?)?)?)?$/i.test(raw) ||
-      /^\s*\[emotion:[a-z]*$/i.test(raw)) {
-    return { emotion: null, text: '' };
-  }
-  return { emotion: null, text: raw };
+  }, 300);
 }
 
 // ============ TTS 语音 ============
@@ -3108,8 +2769,6 @@ async function speak(text) {
 
 async function speakEdge(text) {
   try {
-    // 播报前先停掉唤醒词监听，避免冲突
-    stopWakeListening();
     setState(STATES.SPEAKING);
 
     // 先停止任何正在播放的音频
@@ -3123,17 +2782,13 @@ async function speakEdge(text) {
 
     const voice = document.getElementById('edgeVoice').value;
     const speed = parseFloat(document.getElementById('ttsSpeed').value);
-
-    // 情绪驱动音色(功能3): 在用户基础语速上叠加情绪 rate, 并设置情绪 pitch
-    const ev = EMOTION_VOICE[currentEmotion] || EMOTION_VOICE.neutral;
-    const speedPct = Math.round((speed - 1) * 100) + ev.rate;
+    const speedPct = ((speed - 1) * 100).toFixed(0);
     const rate = (speedPct >= 0 ? '+' : '') + speedPct + '%';
-    const pitch = (ev.pitch >= 0 ? '+' : '') + ev.pitch + 'Hz';
 
     const response = await fetch(`${API}/tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice, rate, pitch })
+      body: JSON.stringify({ text, voice, rate })
     });
 
     if (!response.ok) throw new Error('TTS 服务异常 (HTTP ' + response.status + ')');
@@ -3142,12 +2797,10 @@ async function speakEdge(text) {
     const audioUrl = URL.createObjectURL(blob);
 
     const audio = new Audio(audioUrl);
-    audio.crossOrigin = 'anonymous';
     currentAudio = audio;
 
     audio.onended = () => {
       URL.revokeObjectURL(audioUrl);
-      stopLipSync();
       if (currentAudio === audio) {
         setState(STATES.IDLE);
         isProcessing = false;
@@ -3158,18 +2811,13 @@ async function speakEdge(text) {
 
     audio.onerror = () => {
       URL.revokeObjectURL(audioUrl);
-      stopLipSync();
       if (currentAudio === audio) {
         console.error('音频播放失败');
         currentAudio = null;
         setState(STATES.IDLE);
         isProcessing = false;
-        if (wakeWordEnabled) setTimeout(startWakeListening, 500);
       }
     };
-
-    // 启动唇形同步(从音频元素实时取音量驱动嘴部)
-    startLipSyncFromAudio(audio);
 
     // 用 try-catch 处理 play() 的 AbortError
     try {
@@ -3188,15 +2836,13 @@ async function speakEdge(text) {
       console.log('TTS 被中断,忽略');
       return;
     }
-    console.warn('Edge TTS 不可用,降级到浏览器 TTS:', e.message);
+    console.error('Edge TTS 失败:', e);
+    showToast('Edge TTS 失败,使用浏览器声音');
     speakBrowser(text);
   }
 }
 
 function speakBrowser(text) {
-  // 浏览器 TTS 和 STT 冲突，播报前先停掉唤醒词监听
-  stopWakeListening();
-
   setState(STATES.SPEAKING);
   const isEnglish = /^[\x00-\x7F\s]+$/.test(text.replace(/[。,!?]/g, ''));
 
@@ -3207,13 +2853,7 @@ function speakBrowser(text) {
   const v = voices.find(x => x.lang.startsWith(lang));
   if (v) currentUtterance.voice = v;
 
-  currentUtterance.onstart = () => {
-    // 浏览器 TTS 没法取音频流,只能模拟嘴动
-    startLipSyncFake();
-  };
-
   currentUtterance.onend = () => {
-    stopLipSync();
     setState(STATES.IDLE);
     isProcessing = false;
     currentUtterance = null;
@@ -3221,7 +2861,6 @@ function speakBrowser(text) {
   };
 
   currentUtterance.onerror = () => {
-    stopLipSync();
     setState(STATES.IDLE);
     isProcessing = false;
     if (wakeWordEnabled) setTimeout(startWakeListening, 500);
@@ -3263,8 +2902,7 @@ function playBeep() {
 
 // ============ 设置面板 ============
 function toggleSettings() {
-  const panel = document.getElementById('settingsPanel');
-  panel.style.right = panel.style.right === '0px' ? '-400px' : '0px';
+  document.getElementById('settingsPanel').classList.toggle('open');
 }
 
 async function clearAll() {
@@ -3292,47 +2930,18 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
-// 空格键说话(带调试日志)
+// 空格键说话
 document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
-    console.log('[空格 keydown]', {
-      repeat: e.repeat,
-      activeEl: document.activeElement.tagName,
-      isProcessing,
-      currentState,
-      wakeWordEnabled
-    });
-  }
   if (e.code === 'Space' && !e.repeat &&
       document.activeElement.tagName !== 'INPUT' &&
       document.activeElement.tagName !== 'TEXTAREA') {
     e.preventDefault();
-    if (isProcessing) {
-      console.warn('[空格] 被 isProcessing=true 阻挡,跳过');
-      return;
-    }
-    if (currentState === STATES.LISTENING) {
-      console.warn('[空格] 已经在监听中,跳过');
-      return;
-    }
-    // 空格按下时,先停掉自动唤醒监听,避免冲突
-    if (wakeWordEnabled) {
-      console.log('[空格] 暂停唤醒词监听以释放麦克风');
-      stopWakeListening();
-    }
-    console.log('[空格] 开始语音识别 → startListening()');
-    startListening();
+    if (!isProcessing && currentState !== STATES.LISTENING) startListening();
   }
 });
 
 document.addEventListener('keyup', (e) => {
-  if (e.code === 'Space') {
-    console.log('[空格 keyup]', { currentState });
-  }
-  if (e.code === 'Space' && currentState === STATES.LISTENING) {
-    console.log('[空格] 松开 → stopListening()');
-    stopListening();
-  }
+  if (e.code === 'Space' && currentState === STATES.LISTENING) stopListening();
 });
 
 window.addEventListener('beforeunload', () => {
@@ -3439,65 +3048,6 @@ async function loadProactiveGreeting() {
   }
 }
 
-// ============ 空闲主动搭话 / 桌宠化(功能2) ============
-// 用户在线但一段时间没说话时, Hiyori 自己冒出来撒娇/搭话, 让她"活"起来
-let idleTimer = null;
-let lastIdleChatterAt = 0;
-const IDLE_DELAY_MS = 90 * 1000;        // 静默 90 秒后触发
-const IDLE_MIN_GAP_MS = 3 * 60 * 1000;  // 两次主动搭话至少间隔 3 分钟
-
-function resetIdleTimer() {
-  if (!authToken) return;
-  if (idleTimer) clearTimeout(idleTimer);
-  idleTimer = setTimeout(maybeIdleChatter, IDLE_DELAY_MS);
-}
-
-async function maybeIdleChatter() {
-  // 正在思考/说话/录音, 或页面切到后台时不打断, 顺延
-  if (document.hidden || isProcessing ||
-      currentState === STATES.SPEAKING ||
-      currentState === STATES.THINKING ||
-      currentState === STATES.LISTENING) {
-    resetIdleTimer();
-    return;
-  }
-  // 频率限制, 避免太黏人
-  if (Date.now() - lastIdleChatterAt < IDLE_MIN_GAP_MS) {
-    resetIdleTimer();
-    return;
-  }
-  try {
-    const resp = await fetch(`${API}/idle-chatter`, {
-      headers: { 'Authorization': 'Bearer ' + authToken }
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.message) {
-        lastIdleChatterAt = Date.now();
-        // 复用情绪标签解析 → 同步 Live2D 表情 + 干净文本
-        const { emotion, text } = parseEmotionTag(data.message);
-        if (emotion) applyEmotion(emotion);
-        addMessage('ai', text);
-        showCharacterText(text.length > 50 ? text.slice(0, 50) + '...' : text);
-        const autoSpeakEl = document.getElementById('autoSpeak');
-        if (autoSpeakEl && autoSpeakEl.checked) speak(text);
-      }
-    }
-  } catch (e) {
-    console.error('Idle chatter failed:', e);
-  }
-  resetIdleTimer();
-}
-
-// 用户任何交互都重置空闲计时
-['click', 'keydown', 'touchstart'].forEach(evt => {
-  document.addEventListener(evt, resetIdleTimer, { passive: true });
-});
-// 页面重新可见时也重置(避免切回来立刻被搭话)
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) resetIdleTimer();
-});
-
 // ============ 好感度系统 ============
 
 let currentRelationship = null;
@@ -3508,12 +3058,8 @@ async function loadRelationship() {
     const response = await fetch(`${API}/relationship`, {
       headers: { 'Authorization': 'Bearer ' + authToken }
     });
-    if (!response.ok) {
-      console.error('Relationship API error:', response.status);
-      return;
-    }
+    if (!response.ok) return;
     const data = await response.json();
-    console.log('Relationship data:', JSON.stringify(data));
     currentRelationship = data;
     renderAffectionDisplay(data);
   } catch (e) {
@@ -3526,7 +3072,7 @@ function renderAffectionDisplay(rel) {
   if (!display) return;
   display.style.display = 'flex';
 
-  // 根据等级换图标(初识🌱,聊久了变爱心)
+  // 根据等级换图标
   const icons = {
     'stranger': '🌱',
     'familiar': '💕',
@@ -3534,7 +3080,7 @@ function renderAffectionDisplay(rel) {
     'love': '💖',
     'deeplove': '💞'
   };
-  const icon = icons[rel.level_en] || rel.level_icon || '🌱';
+  const icon = icons[rel.level_en] || rel.level_icon || '💕';
   document.getElementById('affectionIcon').textContent = icon;
   document.getElementById('affectionValue').textContent = rel.affection || 0;
 
@@ -3692,8 +3238,6 @@ async function doLogin() {
 
     showAuthMsg('loginMsg', '登录成功! 正在跳转...', 'success');
 
-    // 标记登录后需检查 PWA 提示
-    localStorage.setItem('pwaCheckAfterLogin', '1');
     setTimeout(() => location.reload(), 500);
 
   } catch (e) {
@@ -3765,15 +3309,12 @@ async function doRegister() {
 function toggleUserMenu() {
   const menu = document.getElementById('userMenu');
   const btn = document.getElementById('userMenuBtn');
-  if (!menu) return;  // 现在没这个菜单了
   if (currentUser) {
-    const n = document.getElementById('userMenuNickname');
-    const u = document.getElementById('userMenuUsername');
-    if (n) n.textContent = currentUser.nickname || currentUser.username;
-    if (u) u.textContent = '@' + currentUser.username;
+    document.getElementById('userMenuNickname').textContent = currentUser.nickname || currentUser.username;
+    document.getElementById('userMenuUsername').textContent = '@' + currentUser.username;
   }
   menu.classList.toggle('open');
-  if (btn) btn.classList.toggle('open');
+  btn.classList.toggle('open');
 }
 
 // ============ PWA 提示系统 ============
@@ -3848,14 +3389,13 @@ function dismissPwaPrompt() {
   localStorage.setItem('pwaPromptLast', Date.now());
 }
 
-// 点击外部关闭菜单(防御 null)
+// 点击外部关闭菜单
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('userMenu');
   const btn = document.getElementById('userMenuBtn');
-  if (!menu) return;
-  if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+  if (menu && !menu.contains(e.target) && !btn.contains(e.target)) {
     menu.classList.remove('open');
-    if (btn) btn.classList.remove('open');
+    btn.classList.remove('open');
   }
 });
 
@@ -3920,119 +3460,79 @@ async function doChangePassword() {
   }
 }
 
-// ============ 全局错误处理(方便手机调试) ============
-window.onerror = function(msg, url, line, col, error) {
-  console.error('全局错误:', msg, 'at', line + ':' + col);
-  const el = document.getElementById('statusText');
-  if (el) el.textContent = '就绪';  // 确保不卡在"初始化中"
-};
-
 // ============ 初始化 (仅在已登录时执行主应用初始化) ============
 
 if (authToken && currentUser) {
-  try { loadSettings(); } catch(e) { console.error('loadSettings error:', e); }
-  try { loadVoices(); } catch(e) { console.error('loadVoices error:', e); }
-  try { connectWS(); } catch(e) { console.error('connectWS error:', e); }
-  try { setupMainBtn(); } catch(e) { console.error('setupMainBtn error:', e); }
+  loadSettings();
+  loadVoices();
+  connectWS();
+  setupMainBtn();
   setTimeout(initLive2D, 500);
   // 加载好感度
-  try { loadRelationship(); } catch(e) { console.error('loadRelationship error:', e); }
+  loadRelationship();
   // 启动日程提醒检查
-  try { startReminderCheck(); } catch(e) { console.error('startReminderCheck error:', e); }
+  startReminderCheck();
   // 加载主动问候(2秒后)
   setTimeout(loadProactiveGreeting, 2000);
-  // 启动空闲主动搭话计时(功能2)
-  try { resetIdleTimer(); } catch(e) { console.error('resetIdleTimer error:', e); }
 
-  // 确保状态文字不卡在"初始化中"
-  setTimeout(() => {
-    const st = document.getElementById('statusText');
-    if (st && st.textContent === '初始化中...') {
-      setStatus('就绪');
-    }
-  }, 3000);
-
-  // PWA - 调试期间彻底禁用 Service Worker,避免缓存卡死
-  // 同时主动注销已经注册的旧 SW,触发重载一次后就稳定
+  // PWA - 注册 Service Worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      if (regs.length > 0) {
-        console.log('[调试] 发现', regs.length, '个旧 SW,正在注销...');
-        Promise.all(regs.map(r => r.unregister())).then(() => {
-          console.log('[调试] 旧 SW 已全部注销');
-          // 第一次注销后刷一次拿到无 SW 状态,加 sessionStorage 防止循环
-          if (!sessionStorage.getItem('swCleaned')) {
-            sessionStorage.setItem('swCleaned', '1');
-            location.reload();
-          }
-        });
-      }
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW 注册成功:', reg.scope))
+        .catch(err => console.log('SW 注册失败:', err));
     });
   }
 
-  // PWA 提示：登录后首次加载触发（iOS + Android 统一处理）
+  // iOS Safari PWA 提示(没有 beforeinstallprompt)
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
-  const isMobile = window.innerWidth <= 768;
-  const pwaCount = parseInt(localStorage.getItem('pwaPromptCount') || '0');
-  const needPwaCheck = localStorage.getItem('pwaCheckAfterLogin') === '1';
-  if (needPwaCheck) {
-    localStorage.removeItem('pwaCheckAfterLogin');
-    // 强制重置计数，确保每次登录后都能看到一次提示
-    localStorage.removeItem('pwaPromptCount');
-    localStorage.removeItem('pwaPromptLast');
-    if (!isInStandaloneMode && isMobile) {
-      setTimeout(() => showPwaPrompt(), 3000);
-    }
+  if (isIos && !isInStandaloneMode && window.innerWidth <= 768) {
+    setTimeout(() => {
+      const count = parseInt(localStorage.getItem('pwaPromptCount') || '0');
+      if (count < 3) {
+        showPwaPrompt();
+      }
+    }, 5000);
   }
 
-  // 自动唤醒词监听 — 调试期间暂时关闭,改成只设置 wakeStatus 提示用户用空格说话
-  // 调好之后把下面这一行的 if(false) 改成 if(true) 就恢复
-  if (false) {
-    setTimeout(async () => {
-      console.log('尝试自动开启唤醒词监听...');
+  // 自动开启唤醒词监听
+setTimeout(async () => {
+  console.log('尝试自动开启唤醒词监听...');
+
+  // 先请求麦克风权限(只触发一次提示)
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // 立刻关闭这个流,我们只是为了获取权限
+    stream.getTracks().forEach(track => track.stop());
+    console.log('麦克风权限已获取');
+
+    // 开启唤醒词监听
+    if (!wakeWordEnabled) {
+      toggleWakeMode();
+      showToast('✨ 自动开启唤醒词,说 "LordKing" 唤醒我');
+    }
+  } catch (err) {
+    console.log('麦克风权限被拒绝:', err.message);
+    showToast('点击右下角 🌸 启用语音功能');
+    // 设置为可点击状态,让用户手动启用
+    const btn = document.getElementById('mainActionBtn');
+    btn.style.pointerEvents = 'auto';
+    btn.style.cursor = 'pointer';
+    btn.onclick = async () => {
+      btn.onclick = null;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => track.stop());
-        console.log('麦克风权限已获取');
-        if (!wakeWordEnabled) {
-          toggleWakeMode();
-          showToast('✨ 自动开启唤醒词,说 "小婷" 唤醒我');
-        }
-      } catch (err) {
-        console.log('麦克风权限被拒绝:', err.message);
-        showToast('点击右下角 🌸 启用语音功能');
-        const btn = document.getElementById('mainActionBtn');
-        btn.style.pointerEvents = 'auto';
-        btn.style.cursor = 'pointer';
-        btn.onclick = async () => {
-          btn.onclick = null;
-          try {
-            const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-            s.getTracks().forEach(t => t.stop());
-            toggleWakeMode();
-          } catch (e) {
-            showToast('需要麦克风权限才能使用语音');
-          }
-        };
+        const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+        s.getTracks().forEach(t => t.stop());
+        toggleWakeMode();
+      } catch (e) {
+        showToast('需要麦克风权限才能使用语音');
       }
-    }, 1500);
-  } else {
-    // 调试模式:不自动开唤醒词,在页脚提示用户按空格说话
-    console.log('[调试模式] 自动唤醒词已禁用,请按住空格说话');
-    setTimeout(() => {
-      const ws = document.getElementById('wakeStatus');
-      if (ws) ws.textContent = '🔧 调试模式 · 按住空格说话';
-    }, 500);
+    };
   }
+}, 1500);
 } // end if (authToken && currentUser)
 </script>
-
-<!-- Live2D: 本地加载，不依赖 CDN -->
-<script defer src="/lib/live2d.min.js"></script>
-<script defer src="/lib/live2dcubismcore.min.js"></script>
-<script defer src="/lib/pixi.min.js"></script>
-<script defer src="/lib/cubism2.min.js"></script>
-<script defer src="/lib/cubism4.min.js"></script>
 
 </body>
 </html>

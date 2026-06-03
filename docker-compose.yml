@@ -48,6 +48,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://ai_user:${POSTGRES_PASSWORD:-MyNexus2026}@postgres:5432/ai_assistant
       REDIS_URL: redis://redis:6379
       MILVUS_DB_PATH: /app/data/milvus_lite.db
+      TZ: Asia/Shanghai
     volumes:
       - milvus_data:/app/data
     ports:
