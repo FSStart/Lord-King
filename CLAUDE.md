@@ -54,10 +54,13 @@ nginx.conf                   # Reverse-proxy /api → backend:8000, serves front
 ```
 
 **Key design decisions:**
-- `LLMService` selects provider at startup via `USE_QWEN` env var; Claude uses `AsyncAnthropic`, Qwen uses `AsyncOpenAI` (OpenAI-compatible endpoint). Default model is `claude-haiku-4-5`.
-- `MilvusService` uses a hash-based placeholder embedding (`_text_to_vector`) instead of a real embedding model to avoid PyTorch/CUDA dependencies. Vector search is therefore semantic in structure only — replace `_text_to_vector` with a real embedding call when ready.
-- Conversation memory is stored per `user_id` in Milvus after each WebSocket exchange. The `/history/{user_id}` DELETE endpoint clears it.
-- Both services are singletons initialized at app startup via FastAPI `lifespan`.
+- `LLMService` selects provider at startup via `USE_QWEN` env var; Claude uses `AsyncAnthropic`, Qwen uses `AsyncOpenAI` (OpenAI-compatible endpoint). Default model is `claude-haiku-4-5`. Note: the tool-calling path (`chat_with_tools`) uses the OpenAI-compatible API and therefore effectively requires the Qwen/DashScope provider.
+- `MilvusService` now uses **real embeddings** (`text-embedding-v3` via the DashScope OpenAI-compatible endpoint) when `USE_QWEN` + `QWEN_API_KEY` are set, storing into collection `memories_v3` (dim `EMBED_DIM`, default 1024). Without an embedding key it falls back to a hash placeholder vector (`_hash_vector`) and collection `memories` (dim 384). `_embed()` degrades to hash on any API error so the collection dim stays consistent.
+- **Vision (功能1):** when a chat request carries `images` (base64 data URLs), `chat_with_tools` builds an OpenAI-style multimodal message and routes to `QWEN_VL_MODEL` (default `qwen-vl-max-latest`), streaming the reply with tools disabled.
+- **Structured profile (功能4):** `ProfileService` (Postgres table `user_profiles`, JSONB) extracts stable facts about the user from each exchange via a background LLM call (`asyncio.create_task`, non-blocking) and injects them into the system prompt every turn — distinct from Milvus, which stores retrievable conversation snippets.
+- **Sentence-streaming TTS (功能3, frontend):** during a streamed reply the frontend splits completed sentences and synthesizes/plays them via a serial queue (`ttsQueue`/`pumpTTS`), cutting first-audio latency. Only active for the Edge TTS engine on voice/forced-speak rounds.
+- Conversation memory is stored per `user_id` in Milvus after each WebSocket exchange. The `/history` DELETE endpoint clears it.
+- All services are singletons initialized at app startup via FastAPI `lifespan` (`milvus`, `llm`, `redis`, `auth`, `affection`, `reminder`, `profile`).
 
 ## API Endpoints
 
@@ -65,9 +68,10 @@ nginx.conf                   # Reverse-proxy /api → backend:8000, serves front
 |---|---|---|
 | GET | `/health` | Returns milvus/llm readiness status |
 | GET | `/stats` | LLM call counts and provider info |
-| POST | `/chat` | Single-turn HTTP chat |
-| WS | `/ws/{client_id}` | Streaming chat via WebSocket |
-| DELETE | `/history/{user_id}` | Clear user memory |
+| POST | `/chat` | Single-turn HTTP chat (accepts optional `images: [base64]`) |
+| WS | `/ws/{token}` | Streaming chat via WebSocket (message payload accepts optional `images`) |
+| GET | `/profile` | Structured facts Hiyori remembers about the user (功能4) |
+| DELETE | `/history` | Clear current user's memory |
 
 ## Local Backend Development (without Docker)
 

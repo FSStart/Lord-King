@@ -20,6 +20,7 @@ from app.services.auth_service import get_auth_service, UserRegister, UserLogin
 from app.services.affection_service import get_affection_service
 from app.services.reminder_service import get_reminder_service
 from app.services.companion_service import generate_proactive_message, get_idle_chatter
+from app.services.profile_service import get_profile_service
 
 
 class Services:
@@ -29,6 +30,7 @@ class Services:
     auth = None
     affection = None
     reminder = None
+    profile = None
 
 
 services = Services()
@@ -84,6 +86,15 @@ async def lifespan(app: FastAPI):
             await services.reminder.init_db(services.auth.pool)
     except Exception as ex:
         logger.error("Reminder init failed: " + str(ex))
+
+    # 初始化用户画像系统(功能4: 结构化记忆)
+    try:
+        services.profile = get_profile_service()
+        if services.auth and services.auth.pool:
+            await services.profile.init_db(services.auth.pool)
+            logger.info("OK Profile system ready")
+    except Exception as ex:
+        logger.error("Profile init failed: " + str(ex))
 
     logger.info("OK Lord King startup complete!")
     yield
@@ -190,7 +201,7 @@ def _now_beijing():
         return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=8)))
 
 
-def build_system_prompt(user_id, long_term_memories, nickname="主人", relationship=None, proactive_recall=False):
+def build_system_prompt(user_id, long_term_memories, nickname="主人", relationship=None, proactive_recall=False, profile=None):
     # 当前北京时间(给 AI 用,避免它瞎猜或拿到 UTC 时间)
     now_bj = _now_beijing()
     weekday_zh = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][now_bj.weekday()]
@@ -252,6 +263,15 @@ RULES:
             base += "- 已经连续 " + str(streak) + " 天聊天啦,要表现得很开心\n"
         if total > 50:
             base += "- 你们已经聊了 " + str(total) + " 次,关系很熟了\n"
+
+    # 功能4: 结构化画像 —— 让 Hiyori 了解主人这个人(每轮注入)
+    if profile:
+        try:
+            profile_text = get_profile_service().format_for_prompt(profile)
+            if profile_text:
+                base += profile_text
+        except Exception:
+            pass
 
     if long_term_memories:
         memory_lines = []
@@ -386,6 +406,16 @@ async def get_relationship(current_user=Depends(get_current_user)):
     user_id = int(current_user["user_id"])
     rel = await services.affection.get_relationship(user_id)
     return rel
+
+
+@app.get("/profile")
+async def get_profile(current_user=Depends(get_current_user)):
+    """获取 Hiyori 记住的关于我的画像(功能4)"""
+    if not services.profile:
+        return {"profile": {}}
+    user_id = int(current_user["user_id"])
+    profile = await services.profile.get_profile(user_id)
+    return {"profile": profile}
 
 
 # ============ 日程提醒 API ============
@@ -599,6 +629,7 @@ async def get_history(current_user=Depends(get_current_user)):
 
 class ChatRequest(BaseModel):
     message: str
+    images: Optional[List[str]] = None  # base64 data URL 列表(功能1: 视觉)
 
 @app.post("/chat")
 async def http_chat(req: ChatRequest, current_user=Depends(get_current_user)):
@@ -620,13 +651,22 @@ async def http_chat(req: ChatRequest, current_user=Depends(get_current_user)):
         except Exception as ex:
             logger.error("Get relationship failed: " + str(ex))
 
+    profile = None
+    if services.profile:
+        try:
+            profile = await services.profile.get_profile(int(user_id))
+        except Exception:
+            pass
+
     history = await get_short_term_history(user_id)
     long_term = await get_long_term_memories(user_id, req.message)
-    system_prompt = build_system_prompt(user_id, long_term, nickname=nickname, relationship=relationship)
+    system_prompt = build_system_prompt(user_id, long_term, nickname=nickname,
+                                        relationship=relationship, profile=profile)
 
     client_id = "http_" + user_id
     try:
-        response = await chat_with_tools(req.message, history, system_prompt, client_id, user_id=user_id)
+        response = await chat_with_tools(req.message, history, system_prompt, client_id,
+                                         user_id=user_id, images=req.images or [])
     except Exception as ex:
         logger.error("HTTP chat error: " + str(ex))
         raise HTTPException(status_code=500, detail=str(ex))
@@ -644,6 +684,12 @@ async def http_chat(req: ChatRequest, current_user=Depends(get_current_user)):
             await services.milvus.add_memory(user_id, req.message + "\n" + response)
         except:
             pass
+
+    # 功能4: 后台更新结构化画像
+    if services.profile and services.llm and req.message:
+        asyncio.create_task(
+            services.profile.update_from_exchange(int(user_id), req.message, services.llm)
+        )
 
     return {"response": response}
 
@@ -681,9 +727,36 @@ async def text_to_speech(request: TTSRequest):
 
 # ============ 工具调用 ============
 
-async def chat_with_tools(user_message, history, system_prompt, client_id, user_id=None):
+async def chat_with_tools(user_message, history, system_prompt, client_id, user_id=None, images=None):
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(history)
+
+    # 功能1: 多模态视觉 —— 用户发了图片时,组多模态 content 并切到 VL 模型(跳过工具,直接流式)
+    if images:
+        client = services.llm.client
+        vl_model = getattr(settings, "QWEN_VL_MODEL", None) or services.llm.model
+        user_content = [{"type": "text", "text": user_message or "看看这张图片~"}]
+        for img in images:
+            if img:
+                user_content.append({"type": "image_url", "image_url": {"url": img}})
+        messages.append({"role": "user", "content": user_content})
+        await manager.send(client_id, {"type": "status", "status": "looking"})
+        try:
+            stream = await client.chat.completions.create(
+                model=vl_model, messages=messages, stream=True
+            )
+            full_response = ""
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    full_response += content
+                    await manager.send(client_id, {"type": "chunk", "content": content})
+            return full_response
+        except Exception as e:
+            logger.error("Vision chat failed: " + str(e))
+            await manager.send(client_id, {"type": "chunk", "content": "[emotion:sad] 呜...Hiyori 看不清这张图片呐 (｡>﹏<｡)"})
+            return "[emotion:sad] 呜...Hiyori 看不清这张图片呐"
+
     messages.append({"role": "user", "content": user_message})
 
     try:
@@ -792,7 +865,9 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
             data = await websocket.receive_text()
             message_data = json.loads(data)
             user_message = message_data.get("message", "")
-            if not user_message:
+            images = message_data.get("images") or []
+            # 既没文字也没图片才跳过
+            if not user_message and not images:
                 continue
 
             await manager.send(client_id, {"type": "status", "status": "thinking"})
@@ -808,18 +883,27 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
 
             history = await get_short_term_history(user_id)
             long_term = await get_long_term_memories(user_id, user_message)
-            # 有长期记忆时,~18% 概率让 Hiyori 主动提起过去的事(功能4)
+            # 取结构化画像(功能4)
+            profile = None
+            if services.profile:
+                try:
+                    profile = await services.profile.get_profile(int(user_id))
+                except Exception:
+                    pass
+            # 有长期记忆时,~18% 概率让 Hiyori 主动提起过去的事
             proactive_recall = bool(long_term) and random.random() < 0.18
             system_prompt = build_system_prompt(user_id, long_term, nickname=nickname,
-                                                relationship=relationship, proactive_recall=proactive_recall)
+                                                relationship=relationship, proactive_recall=proactive_recall,
+                                                profile=profile)
 
             logger.info("[" + username + "] short: " + str(len(history)) + " long: " + str(len(long_term)) +
+                       " img: " + str(len(images)) +
                        " affection: " + str(relationship.get("affection", 0) if relationship else 0))
 
             full_response = ""
             try:
                 if services.llm:
-                    full_response = await chat_with_tools(user_message, history, system_prompt, client_id, user_id=user_id)
+                    full_response = await chat_with_tools(user_message, history, system_prompt, client_id, user_id=user_id, images=images)
                 else:
                     full_response = "LLM not ready"
                     await manager.send(client_id, {"type": "chunk", "content": full_response})
@@ -855,6 +939,12 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                 await save_long_term_memory(user_id, user_message, full_response)
             except Exception as ex:
                 logger.error("Save memory failed: " + str(ex))
+
+            # 功能4: 后台抽取/更新结构化画像(不阻塞,失败无所谓)
+            if services.profile and services.llm and user_message:
+                asyncio.create_task(
+                    services.profile.update_from_exchange(int(user_id), user_message, services.llm)
+                )
 
     except WebSocketDisconnect:
         manager.disconnect(client_id)

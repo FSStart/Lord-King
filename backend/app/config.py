@@ -12,7 +12,13 @@ class Settings(BaseSettings):
     QWEN_API_KEY: Optional[str] = None
     QWEN_API_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     QWEN_MODEL: str = "qwen-max-latest"
+    # 视觉(多模态)模型 —— 用户发图片时切到这个模型. DashScope 兼容接口可用 qwen-vl-max-latest
+    QWEN_VL_MODEL: str = "qwen-vl-max-latest"
     USE_QWEN: bool = False
+
+    # 嵌入(向量)模型 —— 用于长期记忆的真实语义检索. DashScope 兼容接口提供 text-embedding-v3
+    EMBED_MODEL: str = "text-embedding-v3"
+    EMBED_DIM: int = 1024
 
     # 数据库
     POSTGRES_PASSWORD: str = "MyNexus2026"

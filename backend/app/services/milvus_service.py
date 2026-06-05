@@ -1,12 +1,14 @@
 """
-Milvus 向量服务 - 简化版
-用 hash 生成向量,不依赖 sentence-transformers,避免拉取 PyTorch/CUDA
-后期可以替换为真实的嵌入模型
+Milvus 向量服务
+- 优先用真实嵌入模型(DashScope text-embedding-v3,走 OpenAI 兼容接口),做真正的语义检索
+- 没配 embedding key 时,降级到 hash 占位向量(结构上能跑,但召回靠运气)
+两种模式用不同的 collection,维度不同,互不污染.
 """
 from typing import List, Dict, Optional, Any
 from pymilvus import MilvusClient, DataType
 from datetime import datetime
 from loguru import logger
+from app.config import settings
 import json
 import os
 import hashlib
@@ -18,9 +20,29 @@ class MilvusService:
     def __init__(self, db_path: str = "/app/data/milvus_lite.db"):
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.client = MilvusClient(uri=db_path)
-        self.collection_name = "memories"
-        self.dim = 384
-        self.embedding_model = None
+
+        # 判断能否用真实嵌入: 配了 Qwen/DashScope key 就走 text-embedding-v3
+        self.use_real_embed = bool(settings.USE_QWEN and settings.QWEN_API_KEY)
+        self._embed_client = None
+        if self.use_real_embed:
+            try:
+                from openai import AsyncOpenAI
+                self._embed_client = AsyncOpenAI(
+                    api_key=settings.QWEN_API_KEY,
+                    base_url=settings.QWEN_API_URL,
+                )
+                self.dim = settings.EMBED_DIM
+                self.collection_name = "memories_v3"
+                logger.info(f"Milvus 使用真实嵌入模型: {settings.EMBED_MODEL} (dim={self.dim})")
+            except Exception as e:
+                logger.error(f"嵌入客户端初始化失败,降级到 hash 向量: {e}")
+                self.use_real_embed = False
+
+        if not self.use_real_embed:
+            self.dim = 384
+            self.collection_name = "memories"
+            logger.warning("Milvus 使用 hash 占位向量(未配置 embedding,语义检索质量有限)")
+
         self._init_collection()
         logger.info(f"Milvus 服务已初始化: {db_path}")
 
@@ -49,13 +71,31 @@ class MilvusService:
         except Exception as e:
             logger.error(f"初始化集合失败: {e}")
 
-    def _text_to_vector(self, text: str) -> List[float]:
-        """简单的文本转向量(用哈希,占位符)"""
+    def _hash_vector(self, text: str) -> List[float]:
+        """哈希占位向量(无 embedding 时的兜底,维度与 self.dim 对齐)"""
         vector = []
         for i in range(self.dim):
             h = hashlib.md5(f"{text}_{i}".encode()).hexdigest()
             vector.append((int(h[:8], 16) / 0xffffffff) * 2 - 1)
         return vector
+
+    async def _embed(self, text: str) -> List[float]:
+        """文本转向量: 优先真实嵌入模型,失败则降级到 hash(维度一致,不会写坏 collection)"""
+        text = (text or "").strip()[:2000]
+        if self._embed_client and text:
+            try:
+                resp = await self._embed_client.embeddings.create(
+                    model=settings.EMBED_MODEL,
+                    input=text,
+                    dimensions=self.dim,
+                )
+                vec = resp.data[0].embedding
+                if len(vec) == self.dim:
+                    return vec
+                logger.warning(f"嵌入维度不符 ({len(vec)} != {self.dim}),降级 hash")
+            except Exception as e:
+                logger.warning(f"嵌入调用失败,降级 hash: {e}")
+        return self._hash_vector(text)
 
     async def insert_memory(self, user_id: str, content: str, metadata: Optional[Dict] = None) -> str:
         """插入记忆"""
@@ -63,7 +103,7 @@ class MilvusService:
             memory_id = hashlib.md5(
                 f"{user_id}_{content}_{datetime.now().timestamp()}".encode()
             ).hexdigest()
-            vector = self._text_to_vector(content)
+            vector = await self._embed(content)
 
             self.client.insert(
                 collection_name=self.collection_name,
@@ -84,7 +124,7 @@ class MilvusService:
     async def search_memories(self, user_id: str, query: str, top_k: int = 5) -> List[Dict]:
         """搜索记忆"""
         try:
-            query_vector = self._text_to_vector(query)
+            query_vector = await self._embed(query)
             results = self.client.search(
                 collection_name=self.collection_name,
                 data=[query_vector],
@@ -107,6 +147,10 @@ class MilvusService:
         except Exception as e:
             logger.error(f"搜索记忆失败: {e}")
             return []
+
+    async def add_memory(self, user_id: str, content: str, metadata: Optional[Dict] = None) -> str:
+        """insert_memory 的别名(兼容 main.py 旧调用)"""
+        return await self.insert_memory(user_id, content, metadata)
 
     async def delete_user_memories(self, user_id: str):
         """删除用户所有记忆"""

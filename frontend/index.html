@@ -1802,9 +1802,13 @@ input[type="checkbox"] {
         </div>
       </div>
 
+      <div id="imagePreviewBar" style="display:none;gap:8px;padding:8px 12px 0;flex-wrap:wrap;"></div>
       <div class="chat-input-area">
+        <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="onImagePicked(event)">
+        <button class="send-btn" id="imgBtn" title="发图片给 Hiyori 看" onclick="document.getElementById('imageInput').click()"
+                style="background:rgba(236,72,153,0.12);color:#ec4899;">🖼</button>
         <input type="text" class="chat-input" id="chatInput"
-               placeholder="说点什么..." onkeydown="handleInputKey(event)">
+               placeholder="说点什么... (也可粘贴/发图片)" onkeydown="handleInputKey(event)" onpaste="onInputPaste(event)">
         <button class="send-btn" id="sendBtn" onclick="sendText()">→</button>
       </div>
     </div>
@@ -2137,6 +2141,14 @@ let lipsyncAnalyser = null;      // Web Audio Analyser 节点
 let lipsyncRAF = null;           // requestAnimationFrame id
 let lipsyncFakeTimer = null;     // 浏览器 TTS 没法读音量,用定时器模拟
 let audioCtx = null;             // 全局共享 AudioContext
+
+// ===== 句级流式 TTS(功能3: 边生成边说,大幅降低首句延迟) =====
+let speakThisRound = false;      // 本轮是否要朗读(发送时决定)
+let streamTTSEnabled = false;    // 本轮是否启用 Edge 句级流式
+let streamSpokenLen = 0;         // 已切分入队的干净文本长度
+let ttsQueue = [];               // 待播句子队列
+let ttsBusy = false;             // 是否正在播一句
+let streamRoundDone = false;     // 回复已结束,队列排空后收尾
 
 // 调试入口: F12 输入 testLipsync() 让嘴动 3 秒,验证模型支不支持
 window.testLipsync = function(duration = 3000) {
@@ -2472,6 +2484,9 @@ function handleWSMessage(data) {
     setState(STATES.THINKING);
     setStatus('思考中...');
     triggerMotion('idle');
+  } else if (data.type === 'status' && data.status === 'looking') {
+    setState(STATES.THINKING);
+    setStatus('看图中... 👀');
   } else if (data.type === 'chunk') {
     aiResponseBuffer += data.content;
     const { emotion, text } = parseEmotionTag(aiResponseBuffer);
@@ -2481,6 +2496,8 @@ function handleWSMessage(data) {
       applyEmotion(emotion);
     }
     updateLastAIMessage(text);
+    // 功能3: 边生成边把完成的整句送去合成播放
+    if (streamTTSEnabled) feedStreamTTS(text);
   } else if (data.type === 'done') {
     const rawFull = data.full_response || aiResponseBuffer;
     // 解析情绪标签 → 触发表情/动作 + 拿到干净文本
@@ -2499,19 +2516,18 @@ function handleWSMessage(data) {
         showAffectionToast(data.affection.affection_change);
       }
     }
-    // 判断是否需要播报
-    const forceSpeak = /读(一下|出来)?|播(放|报)|念(一下|给我)?|说(出来|一遍)/.test(
-      ws._lastMessage || ''
-    );
-    const shouldSpeak = lastInputWasVoice || forceSpeak;
+    showCharacterText(fullResponse.length > 50 ? fullResponse.slice(0, 50) + '...' : fullResponse);
 
-    if (shouldSpeak) {
+    // 判断是否需要播报(功能3)
+    if (streamTTSEnabled) {
+      // 句级流式: 流式中已边播边说,这里只补最后一句并收尾
+      flushStreamTTS(fullResponse);
+    } else if (speakThisRound) {
+      // 浏览器 TTS 或非流式: 整段一次性朗读
       speak(fullResponse);
-      showCharacterText(fullResponse.length > 50 ? fullResponse.slice(0, 50) + '...' : fullResponse);
     } else {
       setState(STATES.IDLE);
       isProcessing = false;
-      showCharacterText(fullResponse.length > 50 ? fullResponse.slice(0, 50) + '...' : fullResponse);
     }
     aiResponseBuffer = '';
     emotionAppliedThisRound = false;
@@ -2611,14 +2627,32 @@ function setStatus(text) {
 }
 
 // ============ 消息管理 ============
-function addMessage(type, content) {
+function addMessage(type, content, images) {
   const messages = document.getElementById('chatMessages');
   const msg = document.createElement('div');
   msg.className = 'message ' + type;
 
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
-  bubble.textContent = content;
+
+  // 图片(视觉): 渲染缩略图在文字上方
+  if (images && images.length) {
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;' + (content ? 'margin-bottom:6px;' : '');
+    images.forEach(src => {
+      const im = document.createElement('img');
+      im.src = src;
+      im.style.cssText = 'max-width:140px;max-height:140px;border-radius:10px;object-fit:cover;cursor:pointer;';
+      im.onclick = () => window.open(src, '_blank');
+      grid.appendChild(im);
+    });
+    bubble.appendChild(grid);
+  }
+  if (content) {
+    const span = document.createElement('span');
+    span.textContent = content;
+    bubble.appendChild(span);
+  }
 
   msg.appendChild(bubble);
   messages.appendChild(msg);
@@ -2661,13 +2695,92 @@ function handleInputKey(e) {
 // 记录当前输入类型
 let lastInputWasVoice = false;
 
+// ============ 图片(视觉)输入 ============
+let pendingImages = [];  // 待发送图片的 base64 data URL 列表(已压缩)
+
+// 把图片文件压缩成 data URL(最长边 <=1024, JPEG 0.85), 控制 WS 负载
+function fileToCompressedDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1024;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          const r = Math.min(MAX / width, MAX / height);
+          width = Math.round(width * r);
+          height = Math.round(height * r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addPendingImages(files) {
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    if (pendingImages.length >= 4) { showToast('一次最多发 4 张图哦~'); break; }
+    try {
+      const dataUrl = await fileToCompressedDataURL(file);
+      pendingImages.push(dataUrl);
+    } catch (e) { console.warn('图片处理失败', e); }
+  }
+  renderImagePreview();
+}
+
+function onImagePicked(e) {
+  addPendingImages(Array.from(e.target.files || []));
+  e.target.value = '';  // 允许重复选同一张
+}
+
+function onInputPaste(e) {
+  const items = (e.clipboardData || {}).items || [];
+  const files = [];
+  for (const it of items) {
+    if (it.kind === 'file' && it.type.startsWith('image/')) {
+      const f = it.getAsFile();
+      if (f) files.push(f);
+    }
+  }
+  if (files.length) { e.preventDefault(); addPendingImages(files); }
+}
+
+function removePendingImage(idx) {
+  pendingImages.splice(idx, 1);
+  renderImagePreview();
+}
+
+function renderImagePreview() {
+  const bar = document.getElementById('imagePreviewBar');
+  if (!bar) return;
+  if (!pendingImages.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = pendingImages.map((src, i) => `
+    <div style="position:relative;width:56px;height:56px;border-radius:10px;overflow:hidden;border:1px solid rgba(236,72,153,0.3);">
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover;">
+      <span onclick="removePendingImage(${i})" style="position:absolute;top:0;right:0;background:rgba(0,0,0,0.55);color:#fff;width:18px;height:18px;line-height:18px;text-align:center;cursor:pointer;font-size:12px;border-bottom-left-radius:8px;">×</span>
+    </div>`).join('');
+}
+
 function sendText() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
-  if (!text || isProcessing) return;
+  if ((!text && !pendingImages.length) || isProcessing) return;
   input.value = '';
   lastInputWasVoice = false;  // 文字输入
-  sendToAI(text);
+  const imgs = pendingImages.slice();
+  pendingImages = [];
+  renderImagePreview();
+  sendToAI(text, imgs);
 }
 
 function quickSay(text) {
@@ -2841,7 +2954,10 @@ function startWakeListening() {
         setTimeout(() => {
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws._lastMessage = command;
-            ws.send(JSON.stringify({ message: command }));
+            // 语音唤醒一定朗读, 启用句级流式 TTS(功能3)
+            speakThisRound = true;
+            resetStreamTTS();
+            ws.send(JSON.stringify({ message: command, images: [] }));
             isProcessing = true;
             setState(STATES.THINKING);
           } else {
@@ -2919,28 +3035,34 @@ function stopWakeListening() {
 }
 
 // ============ 发送到 AI ============
-function sendToAI(text) {
-  if (!text) return;
+function sendToAI(text, images) {
+  images = images || [];
+  if (!text && !images.length) return;
   isProcessing = true;
-  addMessage('user', text);
+  addMessage('user', text, images);
+
+  // 句级流式 TTS: 本轮是否要边生成边播 + 重置流式游标(功能3)
+  const forceSpeak = /读(一下|出来)?|播(放|报)|念(一下|给我)?|说(出来|一遍)/.test(text || '');
+  speakThisRound = lastInputWasVoice || forceSpeak;
+  resetStreamTTS();
 
   if (chatMode === 'http') {
-    sendViaHTTP(text);
+    sendViaHTTP(text, images);
   } else if (ws && ws.readyState === WebSocket.OPEN) {
     ws._lastMessage = text;
-    ws.send(JSON.stringify({ message: text }));
+    ws.send(JSON.stringify({ message: text, images: images }));
   } else {
     // WS 未就绪，直接用 HTTP
-    sendViaHTTP(text);
+    sendViaHTTP(text, images);
   }
 }
 
-async function sendViaHTTP(text) {
+async function sendViaHTTP(text, images) {
   try {
     const response = await fetch(`${API}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-      body: JSON.stringify({ message: text, user_id: userId })
+      body: JSON.stringify({ message: text, images: images || [], user_id: userId })
     });
     const data = await response.json();
     const rawReply = data.response || data.message || '抱歉，暂时无法回复';
@@ -3085,6 +3207,134 @@ function parseEmotionTag(raw) {
     return { emotion: null, text: '' };
   }
   return { emotion: null, text: raw };
+}
+
+// ============ 句级流式 TTS(功能3) ============
+// 思路: AI 流式输出时,每凑齐一句话就立刻合成并排队播放,
+// 而不是等整段说完再合成. 首句延迟从几秒降到几百毫秒.
+
+function sanitizeForTTS(t) {
+  return (t || '')
+    .replace(/\[emotion:\w+\]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // markdown 链接
+    .replace(/[*_`#]/g, '');
+}
+
+function hasSpeakable(s) {
+  return s.replace(/[\s。！？!?…,，、.~（）()「」""'']/g, '').length >= 1;
+}
+
+// 每轮发送时调用: 重置流式游标, 决定本轮是否走句级流式
+function resetStreamTTS() {
+  ttsQueue = [];
+  ttsBusy = false;
+  streamSpokenLen = 0;
+  streamRoundDone = false;
+  const engineEl = document.getElementById('ttsEngine');
+  const engine = engineEl ? engineEl.value : 'edge';
+  streamTTSEnabled = speakThisRound && engine === 'edge';
+}
+
+// 喂入"到目前为止的干净全文",切出新完成的整句并入队
+function feedStreamTTS(cleanFullText) {
+  if (!streamTTSEnabled) return;
+  const clean = sanitizeForTTS(cleanFullText);
+  if (clean.length <= streamSpokenLen) return;
+  const rest = clean.slice(streamSpokenLen);
+  const re = /[\s\S]*?[。！？!?…\n]+/g;
+  let m, consumed = 0;
+  while ((m = re.exec(rest)) !== null) {
+    const seg = m[0].trim();
+    consumed = re.lastIndex;
+    if (hasSpeakable(seg)) enqueueSentence(seg);
+  }
+  streamSpokenLen += consumed;
+}
+
+function enqueueSentence(s) {
+  ttsQueue.push(s);
+  pumpTTS();
+}
+
+async function pumpTTS() {
+  if (ttsBusy) return;
+  const next = ttsQueue.shift();
+  if (next === undefined) {
+    if (streamRoundDone) finishSpeakingRound();
+    return;
+  }
+  ttsBusy = true;
+  try { await playSentenceEdge(next); }
+  catch (e) { console.warn('[流式TTS] 单句失败', e); }
+  ttsBusy = false;
+  pumpTTS();
+}
+
+// 回复结束时: 把最后不完整的一句也补进队列, 标记收尾
+function flushStreamTTS(cleanFullText) {
+  if (!streamTTSEnabled) return;
+  feedStreamTTS(cleanFullText);
+  const clean = sanitizeForTTS(cleanFullText);
+  const tail = clean.slice(streamSpokenLen).trim();
+  if (hasSpeakable(tail)) { enqueueSentence(tail); }
+  streamSpokenLen = clean.length;
+  streamRoundDone = true;
+  if (!ttsBusy && ttsQueue.length === 0) finishSpeakingRound();
+  else pumpTTS();
+}
+
+function finishSpeakingRound() {
+  setState(STATES.IDLE);
+  isProcessing = false;
+  if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+  if (typeof resetIdleTimer === 'function') resetIdleTimer();
+}
+
+// 合成并播放单句, 返回 Promise(播放结束/失败时 resolve, 供队列串行推进)
+function playSentenceEdge(text) {
+  return new Promise(async (resolve) => {
+    try {
+      stopWakeListening();
+      setState(STATES.SPEAKING);
+      const voice = document.getElementById('edgeVoice').value;
+      const speed = parseFloat(document.getElementById('ttsSpeed').value);
+      const ev = EMOTION_VOICE[currentEmotion] || EMOTION_VOICE.neutral;
+      const speedPct = Math.round((speed - 1) * 100) + ev.rate;
+      const rate = (speedPct >= 0 ? '+' : '') + speedPct + '%';
+      const pitch = (ev.pitch >= 0 ? '+' : '') + ev.pitch + 'Hz';
+
+      const response = await fetch(`${API}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice, rate, pitch })
+      });
+      if (!response.ok) throw new Error('TTS HTTP ' + response.status);
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.crossOrigin = 'anonymous';
+      currentAudio = audio;
+
+      const done = () => {
+        URL.revokeObjectURL(url);
+        if (currentAudio === audio) currentAudio = null;
+        resolve();
+      };
+      audio.onended = () => { stopLipSync(); done(); };
+      audio.onerror = () => { stopLipSync(); done(); };
+
+      startLipSyncFromAudio(audio);
+      try {
+        await audio.play();
+      } catch (e) {
+        if (e.name === 'AbortError') { return; }  // 被打断,不算错误
+        stopLipSync(); done();
+      }
+    } catch (e) {
+      resolve();  // 失败也要推进队列,避免卡死
+    }
+  });
 }
 
 // ============ TTS 语音 ============
@@ -3239,6 +3489,11 @@ function stopSpeaking() {
     currentAudio.pause();
     currentAudio = null;
   }
+  // 清空句级流式 TTS 队列(功能3)
+  ttsQueue = [];
+  ttsBusy = false;
+  streamRoundDone = false;
+  stopLipSync();
   setState(STATES.IDLE);
   isProcessing = false;
   if (wakeWordEnabled) setTimeout(startWakeListening, 300);
