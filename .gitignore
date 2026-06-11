@@ -19,3 +19,6 @@ dist/
 
 # 根目录散落的测试照片(deploy.ps1 的 git add . 会误提交)
 /*.jpg
+desktop/node_modules/
+desktop/dist/
+desktop/.env
