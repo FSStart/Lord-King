@@ -20,7 +20,7 @@ docker compose down && docker compose build --no-cache && docker compose up -d
 ```
 
 **Service ports:**
-- Frontend: `http://<host>` (port 80, Nginx)
+- Frontend: `https://<host>` (port 443, Nginx, self-signed cert auto-generated at container start) — **voice wake word requires HTTPS** (browsers block mic on insecure origins); port 80 still serves text-only chat
 - Backend API: port 8000 (proxied through Nginx)
 - Health check: `GET /health`
 - Stats: `GET /stats`
@@ -51,7 +51,10 @@ backend/app/
 Dockerfile                   # Python 3.11-slim, installs backend/requirements.txt
 docker-compose.yml           # postgres + redis + backend + nginx
 nginx.conf                   # Reverse-proxy /api → backend:8000, serves frontend static files
+desktop/                     # Electron desktop floating pet (wraps the web frontend, see below)
 ```
+
+**Desktop floating pet (`desktop/`):** an Electron shell that loads the existing web frontend in **pet mode** (`http://<server>/?pet=1`) as a transparent, frameless, always-on-top window — no business logic is duplicated. `frontend/index.html` detects `?pet=1`, adds `body.pet-mode` (CSS hides all chrome except the Live2D character + a hover-in input bar), and wires drag-to-move (via `petAPI` IPC bridge from `preload.js`) + click-to-talk. `main.js` provides a tray menu (show/hide, always-on-top, click-through, open full UI, quit) and persists window position to `%APPDATA%/lordking-pet/config.json`. Server URL overridable via `LORDKING_URL` env. Run: `cd desktop && npm install && npm start`; package: `npm run dist:win`. Note: `webkitSpeechRecognition` (voice input) may be unreliable inside Electron; TTS/expression/text chat work normally.
 
 **Key design decisions:**
 - `LLMService` selects provider at startup via `USE_QWEN` env var; Claude uses `AsyncAnthropic`, Qwen uses `AsyncOpenAI` (OpenAI-compatible endpoint). Default model is `claude-haiku-4-5`. Note: the tool-calling path (`chat_with_tools`) uses the OpenAI-compatible API and therefore effectively requires the Qwen/DashScope provider.

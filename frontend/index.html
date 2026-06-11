@@ -1694,6 +1694,50 @@ input[type="checkbox"] {
   white-space: nowrap;
 }
 </style>
+
+<!-- ============ 桌面悬浮宠物模式 (?pet=1, Electron 加载) ============ -->
+<style id="pet-mode-styles">
+html.pet-mode-html, html.pet-mode-html body { background: transparent !important; }
+body.pet-mode { background: transparent !important; overflow: hidden !important; }
+/* 隐藏除角色外的一切界面 */
+body.pet-mode .bg-container,
+body.pet-mode #mainApp > .container,
+body.pet-mode #settingsPanel,
+body.pet-mode #btnTooltip,
+body.pet-mode .status-label,
+body.pet-mode .main-action-btn { display: none !important; }
+/* 角色铺满小窗 */
+body.pet-mode .live2d-area {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important; right: auto !important; bottom: auto !important;
+  width: 100vw !important; height: 100vh !important;
+  cursor: grab;
+}
+body.pet-mode #live2dCanvas { cursor: grab; }
+body.pet-mode .character-bubble {
+  position: fixed !important;
+  top: 10px !important; left: 10px !important; right: 10px !important; bottom: auto !important;
+  max-width: none !important;
+}
+/* 悬浮输入条(鼠标移入小窗才浮现) */
+#petBar { display: none; }
+body.pet-mode #petBar {
+  display: flex; align-items: center; gap: 6px;
+  position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 60;
+  opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+body.pet-mode:hover #petBar { opacity: 1; pointer-events: auto; }
+#petBar input {
+  flex: 1; border: none; border-radius: 16px; padding: 8px 12px; font-size: 13px;
+  background: rgba(255,255,255,0.94); color: #4a3f4d; outline: none;
+  box-shadow: 0 2px 14px rgba(236,72,153,0.28);
+}
+#petBar button {
+  border: none; border-radius: 50%; width: 34px; height: 34px; flex: 0 0 auto;
+  cursor: pointer; color: #fff; font-size: 15px;
+  background: linear-gradient(135deg,#ec4899,#f97316);
+}
+</style>
 </head>
 <body>
 
@@ -1807,6 +1851,8 @@ input[type="checkbox"] {
         <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="onImagePicked(event)">
         <button class="send-btn" id="imgBtn" title="发图片给 Hiyori 看" onclick="document.getElementById('imageInput').click()"
                 style="background:rgba(236,72,153,0.12);color:#ec4899;">🖼</button>
+        <button class="send-btn" id="camBtn" title="拍照指导 — 让小婷看着取景框教你拍" onclick="openCamera()"
+                style="background:rgba(236,72,153,0.12);color:#ec4899;">📷</button>
         <input type="text" class="chat-input" id="chatInput"
                placeholder="说点什么... (也可粘贴/发图片)" onkeydown="handleInputKey(event)" onpaste="onInputPaste(event)">
         <button class="send-btn" id="sendBtn" onclick="sendText()">→</button>
@@ -2071,9 +2117,53 @@ input[type="checkbox"] {
   </div>
 </div>
 
+<!-- 拍照指导:小婷的眼睛(内置相机) -->
+<div id="cameraOverlay" style="display:none;position:fixed;inset:0;z-index:400;background:#000;">
+  <video id="camVideo" autoplay playsinline muted
+         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
+  <canvas id="camCanvas" style="display:none;"></canvas>
+
+  <!-- 抓拍闪光 -->
+  <div id="camFlash" style="position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .12s;"></div>
+
+  <!-- 顶部:关闭 + 翻转 + 自动开关 -->
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));background:linear-gradient(rgba(0,0,0,0.45),transparent);">
+    <button onclick="closeCamera()" style="background:rgba(0,0,0,0.45);color:#fff;border:none;width:40px;height:40px;border-radius:50%;font-size:18px;">✕</button>
+    <div id="camCoachTip" style="flex:1;text-align:center;color:#fff;font-size:14px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.7);padding:0 10px;min-height:20px;">让小婷看看你想怎么拍 📸</div>
+    <button onclick="flipCamera()" title="前后摄像头" style="background:rgba(0,0,0,0.45);color:#fff;border:none;width:40px;height:40px;border-radius:50%;font-size:18px;">🔄</button>
+  </div>
+
+  <!-- 小婷实时点评气泡 -->
+  <div id="camAdvice" style="position:absolute;left:16px;right:16px;bottom:140px;background:rgba(236,72,153,0.9);color:#fff;border-radius:16px;padding:12px 14px;font-size:15px;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,0.4);display:none;backdrop-filter:blur(4px);"></div>
+
+  <!-- 底部控制条 -->
+  <div style="position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;align-items:center;padding:20px 16px;padding-bottom:calc(20px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,0.5));">
+    <button id="camAutoBtn" onclick="toggleAutoCoach()" style="background:rgba(255,255,255,0.18);color:#fff;border:1.5px solid rgba(255,255,255,0.5);border-radius:22px;padding:10px 16px;font-size:13px;font-weight:600;min-width:96px;">🤖 自动指导</button>
+    <button id="camAskBtn" onclick="askCoach(false)" title="问小婷这样拍好不好"
+            style="width:74px;height:74px;border-radius:50%;border:4px solid rgba(255,255,255,0.85);background:radial-gradient(circle at 30% 30%,#fda4d4,#ec4899);box-shadow:0 6px 20px rgba(236,72,153,0.6);font-size:13px;color:#fff;font-weight:700;">问小婷</button>
+    <button id="camSnapBtn" onclick="snapPhoto(true)" title="保存当前这张"
+            style="background:rgba(255,255,255,0.18);color:#fff;border:1.5px solid rgba(255,255,255,0.5);border-radius:22px;padding:10px 16px;font-size:13px;font-weight:600;min-width:96px;">💾 存这张</button>
+  </div>
+
+  <!-- 已抓拍照片条 -->
+  <div id="camGallery" style="position:absolute;left:0;right:0;bottom:96px;bottom:calc(96px + env(safe-area-inset-bottom));display:flex;gap:8px;padding:0 16px;overflow-x:auto;"></div>
+</div>
+
 <!-- Live2D SDK + PixiJS -->
 <!-- Live2D SDK + PixiJS - 注意加载顺序 -->
 <script>
+// ============ 屏幕调试(临时,定位手机卡初始化用,查完删) ============
+(function(){
+  function box(){var d=document.getElementById('__dbg');if(!d){d=document.createElement('div');d.id='__dbg';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,.88);color:#0f0;font:11px/1.5 monospace;padding:6px 8px;white-space:pre-wrap;max-height:50vh;overflow:auto;';(document.body||document.documentElement).appendChild(d);}return d;}
+  window.__dbg=function(m){try{box().textContent+=m+'\n';}catch(e){}};
+  window.addEventListener('error',function(e){__dbg('JS报错: '+(e.message||'')+'  @行'+(e.lineno||'?')+':'+(e.colno||'?'));});
+  try{
+    __dbg('已加载脚本,UA='+navigator.userAgent.slice(0,70));
+    __dbg('authToken='+JSON.stringify(localStorage.getItem('authToken')));
+    __dbg('currentUser='+JSON.stringify(localStorage.getItem('currentUser')));
+  }catch(e){__dbg('读存储出错: '+e);}
+})();
+
 // ============ 配置 ============
 const API = window.location.protocol + '//' + window.location.host;
 const WS_URL = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;
@@ -2082,13 +2172,16 @@ const WS_URL = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + wi
 let authToken = localStorage.getItem('authToken') || null;
 let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 let userId = currentUser ? currentUser.user_id : null;
+if (window.__dbg) __dbg('解析成功 userId=' + userId);
 
 // 检查是否已登录
 if (!authToken || !currentUser) {
   // 未登录,显示登录页
+  if (window.__dbg) __dbg('判定: 未登录 → 显示登录页');
   document.getElementById('authPanel').style.display = 'flex';
   document.getElementById('mainApp').style.display = 'none';
 } else {
+  if (window.__dbg) __dbg('判定: 已登录 → 进入主程序');
   // 已登录
   document.getElementById('authPanel').style.display = 'none';
   document.getElementById('mainApp').style.display = '';
@@ -2122,6 +2215,7 @@ let currentState = STATES.IDLE;
 let ws = null;
 let recognition = null;
 let wakeRecognition = null;
+let wakeNetErrCount = 0;  // 连续 network 错误计数(语音服务连不上时提示而不是无限重启)
 let synth = window.speechSynthesis;
 let voices = [];
 let wakeWordEnabled = false;
@@ -2409,10 +2503,11 @@ function saveSettings() {
 });
 
 function loadVoices() {
-  voices = synth.getVoices();
+  if (synth) voices = synth.getVoices();
 }
 
-if (synth.onvoiceschanged !== undefined) {
+// 部分手机/定制浏览器没有 speechSynthesis(synth 为 undefined),必须判空,否则脚本在此崩溃导致整页卡死
+if (synth && synth.onvoiceschanged !== undefined) {
   synth.onvoiceschanged = loadVoices;
 }
 
@@ -2913,6 +3008,7 @@ function startWakeListening() {
   let wakeHandled = false;  // 防止 interim+final 重复触发
 
   rec.onresult = (event) => {
+    wakeNetErrCount = 0;  // 能拿到结果说明语音服务通了
     if (wakeHandled) return;
     // 收集所有候选结果
     let allTranscripts = [];
@@ -2976,10 +3072,27 @@ function startWakeListening() {
 
   rec.onerror = (e) => {
     // no-speech 是正常的（没人说话），静默重启
-    if (e.error === 'no-speech') return;  // onend 会处理重启
-    if (e.error === 'not-allowed') {
-      console.error("麦克风权限被拒绝");
+    if (e.error === 'no-speech') { wakeNetErrCount = 0; return; }  // onend 会处理重启
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      console.error("麦克风权限被拒绝:", e.error);
+      wakeWordEnabled = false;
+      stopWakeListening();
+      document.getElementById('wakeStatus').textContent = '⚠️ 麦克风被拒绝, 请在浏览器地址栏允许麦克风后刷新';
+      showToast('⚠️ 麦克风权限被拒绝, 无法语音唤醒');
+      updateMainBtnAppearance();
       return;
+    }
+    if (e.error === 'network') {
+      // Chrome 的语音识别走 Google 服务器, 国内连不上会反复 network 错误
+      wakeNetErrCount++;
+      if (wakeNetErrCount >= 3) {
+        wakeWordEnabled = false;
+        stopWakeListening();
+        document.getElementById('wakeStatus').textContent = '⚠️ 语音识别服务连不上 (Chrome 国内不可用), 请改用 Edge 浏览器';
+        showToast('⚠️ 语音识别连不上服务器, 建议换 Edge 浏览器');
+        updateMainBtnAppearance();
+        return;
+      }
     }
     console.log("唤醒词 onerror:", e.error);
     // 其他错误也让 onend 处理重启
@@ -3090,6 +3203,16 @@ function ensureAudioCtx() {
   return audioCtx;
 }
 
+// 手机解锁音频:AudioContext 默认挂起,必须在用户手势里 resume,否则 TTS 没声音。
+// 每次用户触碰页面都尝试 resume(幂等),确保播报时上下文已 running。
+function unlockAudioOnGesture() {
+  const c = ensureAudioCtx();
+  if (c && c.state === 'suspended') { try { c.resume(); } catch (e) {} }
+}
+['touchend', 'pointerdown', 'click', 'keydown'].forEach(ev => {
+  document.addEventListener(ev, unlockAudioOnGesture, { passive: true });
+});
+
 // 从 <audio> 元素取实时音量驱动嘴部(Edge TTS 用)
 function startLipSyncFromAudio(audioEl) {
   stopLipSync();
@@ -3099,8 +3222,14 @@ function startLipSyncFromAudio(audioEl) {
     startLipSyncFake();
     return;
   }
+  if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+  // 关键:若上下文未 running(手机未解锁音频),绝不能把音频接进 Web Audio 图,
+  // 否则音频被路由进挂起的图里 → 完全没声音。此时改用模拟口型,让 <audio> 直接外放。
+  if (ctx.state !== 'running') {
+    startLipSyncFake();
+    return;
+  }
   try {
-    if (ctx.state === 'suspended') ctx.resume();
     const source = ctx.createMediaElementSource(audioEl);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
@@ -3441,12 +3570,24 @@ async function speakEdge(text) {
       console.log('TTS 被中断,忽略');
       return;
     }
-    console.warn('Edge TTS 不可用,降级到浏览器 TTS:', e.message);
-    speakBrowser(text);
+    console.warn('Edge TTS 不可用:', e.message);
+    // 仅当浏览器 TTS 真正可用时才降级,否则直接收尾,避免 speakEdge↔speakBrowser 无限递归
+    if (synth && typeof window.SpeechSynthesisUtterance !== 'undefined') {
+      speakBrowser(text);
+    } else {
+      stopLipSync();
+      setState(STATES.IDLE);
+      isProcessing = false;
+      if (wakeWordEnabled) setTimeout(startWakeListening, 500);
+    }
   }
 }
 
 function speakBrowser(text) {
+  // 部分手机/定制浏览器不支持浏览器 TTS(无 speechSynthesis),自动降级到 Edge TTS
+  if (!synth || typeof window.SpeechSynthesisUtterance === 'undefined') {
+    return speakEdge(text);
+  }
   // 浏览器 TTS 和 STT 冲突，播报前先停掉唤醒词监听
   stopWakeListening();
 
@@ -3594,7 +3735,7 @@ document.addEventListener('keyup', (e) => {
 });
 
 window.addEventListener('beforeunload', () => {
-  if (currentUtterance) synth.cancel();
+  if (currentUtterance && synth) synth.cancel();
   if (currentAudio) currentAudio.pause();
   if (recognition) recognition.stop();
   if (wakeRecognition) wakeRecognition.stop();
@@ -4243,10 +4384,19 @@ if (authToken && currentUser) {
     }
   }
 
+  if (window.__dbg) __dbg('✅ 初始化全部跑完(连接/语音/好感度已启动)');
+
   // 自动唤醒词监听 — 登录后自动开启
   if (true) {
     setTimeout(async () => {
       console.log('尝试自动开启唤醒词监听...');
+      // HTTP(非 localhost) 下浏览器直接禁用麦克风, getUserMedia 都不存在, 给出明确提示
+      if (!window.isSecureContext || !navigator.mediaDevices) {
+        const httpsUrl = 'https://' + location.host + location.pathname;
+        document.getElementById('wakeStatus').textContent = '⚠️ HTTP 页面浏览器禁用麦克风, 请用 ' + httpsUrl + ' 访问';
+        showToast('⚠️ 语音唤醒需要 HTTPS, 请改用 https:// 访问');
+        return;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(track => track.stop());
@@ -4290,6 +4440,244 @@ if (authToken && currentUser) {
 <script defer src="/lib/pixi.min.js"></script>
 <script defer src="/lib/cubism2.min.js"></script>
 <script defer src="/lib/cubism4.min.js"></script>
+
+<!-- ============ 桌面悬浮宠物模式逻辑 (?pet=1) ============ -->
+<script>
+(function () {
+  const IS_PET = new URLSearchParams(location.search).has('pet');
+  if (!IS_PET) return;
+  document.documentElement.classList.add('pet-mode-html');
+
+  function setup() {
+    document.body.classList.add('pet-mode');
+
+    // 悬浮输入条
+    if (!document.getElementById('petBar')) {
+      const bar = document.createElement('div');
+      bar.id = 'petBar';
+      bar.innerHTML =
+        '<input id="petInput" placeholder="和 Hiyori 说说话..." autocomplete="off">' +
+        '<button id="petSend" title="发送">→</button>';
+      document.body.appendChild(bar);
+
+      const send = () => {
+        const el = document.getElementById('petInput');
+        const t = (el.value || '').trim();
+        if (!t) return;
+        el.value = '';
+        try { lastInputWasVoice = true; } catch (e) {}   // 宠物默认朗读回复
+        if (typeof sendToAI === 'function') sendToAI(t);
+      };
+      document.getElementById('petSend').addEventListener('click', send);
+      const inp = document.getElementById('petInput');
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+      inp.addEventListener('mousedown', (e) => e.stopPropagation());  // 输入框里别触发拖拽
+    }
+
+    // 拖角色移动窗口(Electron) + 点角色说话
+    // 注意: live2d-area 是 pointer-events:none, 真正收事件的是 canvas
+    const area = document.getElementById('live2dCanvas') || document.getElementById('live2dArea');
+    if (area) {
+      let downX = 0, downY = 0, moved = false, dragging = false;
+      area.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        downX = e.screenX; downY = e.screenY; moved = false; dragging = true;
+        if (window.petAPI && petAPI.dragStart) petAPI.dragStart();
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        if (Math.abs(e.screenX - downX) > 4 || Math.abs(e.screenY - downY) > 4) moved = true;
+      });
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        if (window.petAPI && petAPI.dragEnd) petAPI.dragEnd();
+        if (!moved) {  // 没怎么动 = 点击 → 语音输入
+          try { if (typeof isProcessing !== 'undefined' && isProcessing) return; } catch (_) {}
+          if (typeof startListening === 'function') startListening();
+        }
+      });
+    }
+  }
+
+  if (document.body) setup();
+  else window.addEventListener('DOMContentLoaded', setup);
+})();
+</script>
+
+<script>
+// ============ 拍照指导:小婷的眼睛(内置相机) ============
+const camState = { stream: null, facing: 'environment', auto: false, autoTimer: null, busy: false, photos: [] };
+
+async function openCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast('这个浏览器不支持相机哦~'); return;
+  }
+  document.getElementById('cameraOverlay').style.display = 'block';
+  setCamTip('让小婷看看你想怎么拍 📸');
+  try {
+    await startCamStream();
+  } catch (e) {
+    console.warn('相机打开失败', e);
+    showToast('打不开相机:' + (e.message || e.name) + '(需 HTTPS + 授权)');
+    closeCamera();
+  }
+}
+
+async function startCamStream() {
+  stopCamStream();
+  const constraints = {
+    audio: false,
+    video: { facingMode: { ideal: camState.facing }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+  };
+  camState.stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const v = document.getElementById('camVideo');
+  v.srcObject = camState.stream;
+  await v.play().catch(() => {});
+}
+
+function stopCamStream() {
+  if (camState.stream) { camState.stream.getTracks().forEach(t => t.stop()); camState.stream = null; }
+}
+
+function closeCamera() {
+  stopAutoCoach();
+  stopCamStream();
+  document.getElementById('cameraOverlay').style.display = 'none';
+  document.getElementById('camAdvice').style.display = 'none';
+}
+
+async function flipCamera() {
+  camState.facing = camState.facing === 'environment' ? 'user' : 'environment';
+  try { await startCamStream(); } catch (e) { showToast('翻转失败'); }
+}
+
+function setCamTip(t) { const el = document.getElementById('camCoachTip'); if (el) el.textContent = t; }
+
+// 抓取当前画面 → JPEG dataURL。maxEdge=分析用(小)/出片用(原生大)
+function captureCamFrame(maxEdge, quality) {
+  const v = document.getElementById('camVideo');
+  const cv = document.getElementById('camCanvas');
+  let w = v.videoWidth, h = v.videoHeight;
+  if (!w || !h) return null;
+  if (maxEdge && (w > maxEdge || h > maxEdge)) {
+    const r = Math.min(maxEdge / w, maxEdge / h);
+    w = Math.round(w * r); h = Math.round(h * r);
+  }
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').drawImage(v, 0, 0, w, h);
+  return cv.toDataURL('image/jpeg', quality || 0.85);
+}
+
+// 让小婷点评当前取景框
+async function askCoach(isAuto) {
+  if (camState.busy) return;
+  const frame = captureCamFrame(1024, 0.85);
+  if (!frame) { showToast('画面还没准备好~'); return; }
+  camState.busy = true;
+  setCamTip('小婷正在看画面… 👀');
+
+  const prompt = '你正透过我的手机取景框看我准备拍的照片。请当我的专业摄影指导,用一句最关键的中文建议告诉我怎么调整(比如:手机放低一点、人往左挪、脸朝光、靠近些、保持水平)。要具体、口语、简短。如果构图已经很好可以直接拍了,就在情绪标签后面紧跟一个 ✅ 再夸我一句。';
+
+  try {
+    const resp = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+      body: JSON.stringify({ message: prompt, images: [frame], user_id: userId })
+    });
+    const data = await resp.json();
+    const raw = data.response || data.message || '';
+    const good = raw.includes('✅');
+    const { emotion, text } = (typeof parseEmotionTag === 'function')
+      ? parseEmotionTag(raw) : { emotion: null, text: raw };
+    const clean = (text || raw).replace(/✅/g, '').trim();
+
+    if (emotion && typeof applyEmotion === 'function') applyEmotion(emotion);
+    showCamAdvice((good ? '✅ ' : '') + clean);
+    setCamTip(good ? '构图很棒,可以拍啦!' : '按建议调整一下~');
+    if (typeof speak === 'function') speak(clean);
+
+    if (good && camState.auto) {
+      stopAutoCoach();
+      setTimeout(() => snapPhoto(true), 700);  // 稍等抖动稳定再抓拍
+    }
+  } catch (e) {
+    console.warn('coach failed', e);
+    setCamTip('小婷没看清,再试一次~');
+  } finally {
+    camState.busy = false;
+    if (camState.auto) {
+      camState.autoTimer = setTimeout(() => askCoach(true), 4500);
+    }
+  }
+}
+
+function showCamAdvice(t) {
+  const el = document.getElementById('camAdvice');
+  el.textContent = '小婷:' + t;
+  el.style.display = 'block';
+}
+
+function toggleAutoCoach() {
+  if (camState.auto) { stopAutoCoach(); return; }
+  camState.auto = true;
+  const btn = document.getElementById('camAutoBtn');
+  btn.style.background = 'rgba(236,72,153,0.9)';
+  btn.textContent = '⏸ 停止自动';
+  setCamTip('自动指导中,跟着小婷调整…');
+  askCoach(true);
+}
+
+function stopAutoCoach() {
+  camState.auto = false;
+  if (camState.autoTimer) { clearTimeout(camState.autoTimer); camState.autoTimer = null; }
+  const btn = document.getElementById('camAutoBtn');
+  if (btn) { btn.style.background = 'rgba(255,255,255,0.18)'; btn.textContent = '🤖 自动指导'; }
+}
+
+// 抓拍并保存当前画面(出片用原生分辨率)
+function snapPhoto(announce) {
+  const full = captureCamFrame(0, 0.92);  // 0 = 不缩放,原生分辨率
+  if (!full) { showToast('画面还没准备好~'); return; }
+  const flash = document.getElementById('camFlash');
+  flash.style.opacity = '0.9';
+  setTimeout(() => { flash.style.opacity = '0'; }, 130);
+  try { camBeep(); } catch (e) {}
+  camState.photos.unshift(full);
+  if (camState.photos.length > 12) camState.photos.pop();
+  renderCamGallery();
+  if (announce) { setCamTip('📸 拍好啦!点下方缩略图可保存'); showToast('已抓拍,点缩略图保存到相册'); }
+}
+
+function renderCamGallery() {
+  const g = document.getElementById('camGallery');
+  g.innerHTML = camState.photos.map((src, i) => `
+    <img src="${src}" onclick="downloadCamPhoto(${i})" title="点击保存"
+         style="height:64px;width:64px;object-fit:cover;border-radius:10px;border:2px solid rgba(255,255,255,0.7);flex:0 0 auto;">
+  `).join('');
+}
+
+function downloadCamPhoto(i) {
+  const src = camState.photos[i]; if (!src) return;
+  const a = document.createElement('a');
+  a.href = src;
+  a.download = 'xiaoting_' + Date.now() + '.jpg';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// 抓拍快门音
+function camBeep() {
+  const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+  const ac = new Ctx();
+  const o = ac.createOscillator(), gg = ac.createGain();
+  o.connect(gg); gg.connect(ac.destination);
+  o.frequency.value = 880; gg.gain.value = 0.18;
+  o.start();
+  gg.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.12);
+  o.stop(ac.currentTime + 0.13);
+  setTimeout(() => ac.close(), 250);
+}
+</script>
 
 </body>
 </html>

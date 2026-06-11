@@ -11,3 +11,11 @@ logs/
 *.log
 .idea/
 .vscode/
+
+# Electron 桌面端依赖与打包产物 — 绝不入库(之前误提交 5740 个文件导致 push 超时)
+node_modules/
+desktop/dist/
+dist/
+
+# 根目录散落的测试照片(deploy.ps1 的 git add . 会误提交)
+/*.jpg

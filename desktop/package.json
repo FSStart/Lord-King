@@ -1,0 +1,30 @@
+{
+  "name": "lordking-pet",
+  "version": "1.0.0",
+  "description": "Hiyori 桌面悬浮宠物 (Electron) — 复用 Lord King 网页前端,以透明置顶小窗呈现",
+  "main": "main.js",
+  "author": "Lord King",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.7.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.lordking.pet",
+    "productName": "HiyoriPet",
+    "files": ["main.js", "preload.js", "icon.png"],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

@@ -18,7 +18,7 @@ if (-not $?) {
 
 if ($FrontendOnly) {
     Write-Host "只更新前端..."
-    ssh $Server "cd $ServerPath && git pull && docker compose restart nginx"
+    ssh $Server "cd $ServerPath && git pull && docker compose up -d nginx"
 } else {
     Write-Host "全量部署..."
     ssh $Server "cd $ServerPath && git pull && docker compose up -d --build"
