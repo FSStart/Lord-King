@@ -33,13 +33,14 @@ class Services:
     profile = None
     skills = None
     mcp = None
-    evolution = None
+    evolution = None\n    evolve_daemon = None
 
 
 # === v6: Skills Engine + MCP + Self-Evolution ===
 from app.services.skills import get_skills_engine
 from app.services.mcp import MCPServer, setup_mcp_routes
 from app.services.self_evolution import get_evolution_engine
+from app.services.evolution_daemon import get_evolution_daemon as get_evolve_daemon
 
 services = Services()
 SHORT_TERM_LIMIT = 10
@@ -126,6 +127,20 @@ async def lifespan(app: FastAPI):
         logger.info("OK Self-Evolution Engine ready")
     except Exception as ex:
         logger.error(f"Evolution init failed: {ex}")
+
+
+    # === v6: Start Evolution Daemon ===
+    try:
+        from app.services.evolution_daemon import EvolutionDaemon
+        services.evolve_daemon = EvolutionDaemon()
+        services.evolve_daemon.skills_engine = services.skills
+        services.evolve_daemon.llm_service = services.llm
+        services.evolve_daemon.milvus_service = services.milvus
+        import asyncio
+        asyncio.create_task(services.evolve_daemon.run())
+        logger.info("OK Evolution Daemon started (background)")
+    except Exception as ex:
+        logger.error(f"Evolution Daemon start failed: {ex}")
 
     logger.info("OK Lord King startup complete! [v6]")
     yield
@@ -346,6 +361,14 @@ async def api_reflect(current_user=Depends(get_current_user)):
     if not services.evolution:
         raise HTTPException(503, "Evolution engine not ready")
     return await services.evolution.reflect_and_improve()
+
+
+# === v6: Evolution Daemon API ===
+
+@app.get("/daemon/status")
+async def daemon_status(current_user=Depends(get_current_user)):
+    daemon = get_evolve_daemon()
+    return daemon.get_status()
 
 # ============ WebSocket 管理 ============
 
@@ -710,7 +733,7 @@ async def http_chat(req: ChatRequest, current_user=Depends(get_current_user)):
         except Exception as ex:
             logger.error("Get relationship failed: " + str(ex))
     mcp = None
-    evolution = None
+    evolution = None\n    evolve_daemon = None
     if services.profile:
         try:
             profile = await services.profile.get_profile(int(user_id))
@@ -896,6 +919,9 @@ async def chat_with_tools(user_message, history, system_prompt, client_id, user_
             full_response += chunk
             await manager.send(client_id, {"type": "chunk", "content": chunk})
         return full_response
+
+
+
 
 
 
