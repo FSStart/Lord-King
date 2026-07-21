@@ -29,3 +29,6 @@ tzdata
 # 用户认证
 PyJWT==2.8.0
 bcrypt==4.1.2
+
+# === v6: Skills Engine + MCP ===
+# (all deps already included: fastapi, uvicorn, pydantic, loguru)

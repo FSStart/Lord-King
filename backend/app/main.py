@@ -31,7 +31,15 @@ class Services:
     affection = None
     reminder = None
     profile = None
+    skills = None
+    mcp = None
+    evolution = None
 
+
+# === v6: Skills Engine + MCP + Self-Evolution ===
+from app.services.skills import get_skills_engine
+from app.services.mcp import MCPServer, setup_mcp_routes
+from app.services.self_evolution import get_evolution_engine
 
 services = Services()
 SHORT_TERM_LIMIT = 10
@@ -96,7 +104,30 @@ async def lifespan(app: FastAPI):
     except Exception as ex:
         logger.error("Profile init failed: " + str(ex))
 
-    logger.info("OK Lord King startup complete!")
+    # === v6: Skills Engine ===
+    try:
+        services.skills = get_skills_engine()
+        logger.info(f"OK Skills Engine ready: {len(services.skills.skills)} skills")
+    except Exception as ex:
+        logger.error(f"Skills Engine init failed: {ex}")
+
+    # === v6: MCP Server ===
+    try:
+        from app.services.tools_service import TOOL_REGISTRY
+        services.mcp = MCPServer(skills_engine=services.skills, tool_registry=TOOL_REGISTRY)
+        setup_mcp_routes(app, services.mcp)
+        logger.info("OK MCP Server ready")
+    except Exception as ex:
+        logger.error(f"MCP init failed: {ex}")
+
+    # === v6: Self-Evolution Engine ===
+    try:
+        services.evolution = get_evolution_engine(llm_service=services.llm, skills_engine=services.skills)
+        logger.info("OK Self-Evolution Engine ready")
+    except Exception as ex:
+        logger.error(f"Evolution init failed: {ex}")
+
+    logger.info("OK Lord King startup complete! [v6]")
     yield
     if services.redis:
         await services.redis.close()
@@ -287,6 +318,34 @@ RULES:
                      "不要生硬罗列,也不要说'根据我的记忆'这种话.")
     return base
 
+
+
+# === v6: Skills & Evolution API ===
+
+@app.get("/skills")
+async def list_skills(current_user=Depends(get_current_user)):
+    if not services.skills:
+        return {"skills": [], "error": "Skills engine not ready"}
+    return services.skills.get_status()
+
+@app.get("/evolution")
+async def evolution_report(current_user=Depends(get_current_user)):
+    if not services.evolution:
+        return {"error": "Evolution engine not ready"}
+    return services.evolution.get_evolution_report()
+
+@app.post("/evolution/generate-tool")
+async def api_generate_tool(req: dict, current_user=Depends(get_current_user)):
+    if not services.evolution:
+        raise HTTPException(503, "Evolution engine not ready")
+    result = await services.evolution.generate_tool(description=req.get("description", ""), tool_name=req.get("name"))
+    return result
+
+@app.post("/evolution/reflect")
+async def api_reflect(current_user=Depends(get_current_user)):
+    if not services.evolution:
+        raise HTTPException(503, "Evolution engine not ready")
+    return await services.evolution.reflect_and_improve()
 
 # ============ WebSocket 管理 ============
 
@@ -650,8 +709,8 @@ async def http_chat(req: ChatRequest, current_user=Depends(get_current_user)):
             relationship = await services.affection.get_relationship(int(user_id))
         except Exception as ex:
             logger.error("Get relationship failed: " + str(ex))
-
-    profile = None
+    mcp = None
+    evolution = None
     if services.profile:
         try:
             profile = await services.profile.get_profile(int(user_id))
@@ -767,7 +826,7 @@ async def chat_with_tools(user_message, history, system_prompt, client_id, user_
         # 不能用 asyncio.to_thread(会把 coroutine 当结果返回)
         response = await client.chat.completions.create(
             model=model, messages=messages,
-            tools=TOOL_DEFINITIONS, tool_choice="auto", stream=False
+            tools=TOOL_DEFINITIONS + (services.skills.get_tool_definitions() if services.skills else []), tool_choice="auto", stream=False
         )
 
         assistant_msg = response.choices[0].message
@@ -794,7 +853,12 @@ async def chat_with_tools(user_message, history, system_prompt, client_id, user_
 
                 logger.info("[Tool] " + tool_name + " " + str(tool_args))
                 await manager.send(client_id, {"type": "tool_call", "name": tool_name, "args": tool_args})
-                tool_result = await execute_tool(tool_name, tool_args, user_id=int(user_id) if user_id else None)
+                # v6: try skills engine first if not in TOOL_REGISTRY
+                from app.services.tools_service import TOOL_REGISTRY as _base_registry
+                if tool_name not in _base_registry and services.skills and tool_name in services.skills.tool_funcs:
+                    tool_result = await services.skills.execute_tool(tool_name, tool_args, user_id=int(user_id) if user_id else None)
+                else:
+                    tool_result = await execute_tool(tool_name, tool_args, user_id=int(user_id) if user_id else None)
                 messages.append({
                     "role": "tool", "tool_call_id": tc.id, "content": tool_result
                 })
@@ -832,6 +896,8 @@ async def chat_with_tools(user_message, history, system_prompt, client_id, user_
             full_response += chunk
             await manager.send(client_id, {"type": "chunk", "content": chunk})
         return full_response
+
+
 
 
 # ============ WebSocket(需要 token 鉴权) ============
